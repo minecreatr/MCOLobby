@@ -30,7 +30,7 @@ public class CommandListener {
                     break;
                 }
 
-                if (args[i].equals("||")){
+                if (args[i].equals("||") || args[i].equals("::") || args.equals(";;")){
                     moveOn = true;
                 }
                 else {
