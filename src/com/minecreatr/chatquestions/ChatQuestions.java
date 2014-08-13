@@ -27,6 +27,7 @@ import org.bukkit.scheduler.BukkitScheduler;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.UUID;
 
 /**
  * Created on 6/24/2014
@@ -37,9 +38,9 @@ public class ChatQuestions extends JavaPlugin implements Listener{
     public static String curQuestion = "";
     //red green yellow [MCO]
     public static String pluginPrefix = "[§cM§2C§eO§f§6C§dQ§f] ";
-    public static HashMap<String, Boolean> blockPing = new HashMap<String, Boolean>();
-    public static HashMap<String, Boolean> disableDoubleJump = new HashMap<String, Boolean>();
-    public static HashMap<String, Boolean> isInAir = new HashMap<String, Boolean>();
+    public static HashMap<UUID, Boolean> blockPing = new HashMap<UUID, Boolean>();
+    public static HashMap<UUID, Boolean> disableDoubleJump = new HashMap<UUID, Boolean>();
+    public static HashMap<UUID, Boolean> isInAir = new HashMap<UUID, Boolean>();
     private ChatListener chatListener = new ChatListener();
     private CommandListener commandListener = new CommandListener();
     private ToggleFlightListener toggleFlightListener = new ToggleFlightListener();
@@ -103,7 +104,7 @@ public class ChatQuestions extends JavaPlugin implements Listener{
     @EventHandler
     public void onPlayerTick(PlayerTickEvent event){
         if (event.getPlayer().getLocation().getBlock().getRelative(BlockFace.DOWN).getType().isSolid()){
-            isInAir.put(event.getPlayer().getName(), false);
+            isInAir.put(event.getPlayer().getUniqueId(), false);
             if (event.getPlayer().getGameMode()!=GameMode.CREATIVE) {
                 event.getPlayer().setAllowFlight(true);
             }

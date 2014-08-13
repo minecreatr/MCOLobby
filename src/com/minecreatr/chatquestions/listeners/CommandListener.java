@@ -7,6 +7,8 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import java.util.UUID;
+
 /**
  * Created on 8/11/2014
  */
@@ -60,24 +62,28 @@ public class CommandListener {
             if (args.length<2){
                 return false;
             }
-            String targetName = args[0];
+            if (Bukkit.getPlayer(args[0])==null){
+                player.sendMessage("§4Could Not Find Target Player");
+                return true;
+            }
+            UUID targetID = Bukkit.getPlayer(args[0]).getUniqueId();
             String message = "";
             for (int i=1;i<args.length;i++){
                 message = message+args[i]+" ";
             }
-            if (Bukkit.getServer().getPlayer(targetName) ==null){
+            if (Bukkit.getServer().getPlayer(targetID) ==null){
                 player.sendMessage("§4Could Not Find Target Player");
                 return true;
             }
-            if (ChatQuestions.blockPing.get(targetName)==null){
-                ChatQuestions.blockPing.put(targetName, false);
+            if (ChatQuestions.blockPing.get(targetID)==null){
+                ChatQuestions.blockPing.put(targetID, false);
             }
-            if (ChatQuestions.blockPing.get(targetName)){
+            if (ChatQuestions.blockPing.get(targetID)){
                 player.sendMessage("§4This player has ping messages disabled");
                 return true;
             }
-            Player targetPlayer = Bukkit.getServer().getPlayer(targetName);
-            player.sendMessage("§6To "+targetName+"§f: "+message);
+            Player targetPlayer = Bukkit.getServer().getPlayer(targetID);
+            player.sendMessage("§6To "+args[0]+"§f: "+message);
             targetPlayer.sendMessage("§6From "+player.getName()+"§f: "+message);
             targetPlayer.playSound(targetPlayer.getLocation(), Sound.ANVIL_BREAK, 1, 1);
             return true;
@@ -90,35 +96,35 @@ public class CommandListener {
             if (args.length<2){
                 return false;
             }
-            String targetName = args[0];
+            String targetID = args[0];
             String message = "";
             for (int i=1;i<args.length;i++){
                 message = message+args[i]+" ";
             }
-            if (Bukkit.getServer().getPlayer(targetName) ==null){
+            if (Bukkit.getServer().getPlayer(targetID) ==null){
                 player.sendMessage("§4Could Not Find Target Player");
                 return true;
             }
-            Player targetPlayer = Bukkit.getServer().getPlayer(targetName);
-            player.sendMessage("§6To "+targetName+"§f: "+message);
+            Player targetPlayer = Bukkit.getServer().getPlayer(targetID);
+            player.sendMessage("§6To "+targetID+"§f: "+message);
             targetPlayer.sendMessage("§6From "+player.getName()+"§f: "+message);
             targetPlayer.playSound(targetPlayer.getLocation(), Sound.ANVIL_BREAK, 1, 1);
             return true;
         }
         else if (cmd.getName().equalsIgnoreCase("toggleping")){
             boolean isPingBlocked;
-            if (ChatQuestions.blockPing.containsKey(player.getName())){
-                isPingBlocked=ChatQuestions.blockPing.get(player.getName());
+            if (ChatQuestions.blockPing.containsKey(player.getUniqueId())){
+                isPingBlocked=ChatQuestions.blockPing.get(player.getUniqueId());
             }
             else {
                 isPingBlocked=false;
             }
             if (isPingBlocked){
-                ChatQuestions.blockPing.put(player.getName(), false);
+                ChatQuestions.blockPing.put(player.getUniqueId(), false);
                 player.sendMessage("§6Message Pinging is now enabled");
             }
             else if (!isPingBlocked){
-                ChatQuestions.blockPing.put(player.getName(), true);
+                ChatQuestions.blockPing.put(player.getUniqueId(), true);
                 player.sendMessage("§4Message Pinging is now disabled");
             }
             return true;
@@ -132,11 +138,11 @@ public class CommandListener {
                 isJumpDisabled = false;
             }
             if (isJumpDisabled){
-                ChatQuestions.disableDoubleJump.put(player.getName(), false);
+                ChatQuestions.disableDoubleJump.put(player.getUniqueId(), false);
                 player.sendMessage("§6Double Jumping is now enabled (Will interfere with flight)");
             }
             else if (!isJumpDisabled){
-                ChatQuestions.disableDoubleJump.put(player.getName(), true);
+                ChatQuestions.disableDoubleJump.put(player.getUniqueId(), true);
                 player.sendMessage("§4Double Jumping is now disabled");
             }
             return true;
