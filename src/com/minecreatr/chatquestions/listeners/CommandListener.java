@@ -139,10 +139,12 @@ public class CommandListener {
             }
             if (isJumpDisabled){
                 ChatQuestions.disableDoubleJump.put(player.getUniqueId(), false);
+                player.setAllowFlight(true);
                 player.sendMessage("§6Double Jumping is now enabled (Will interfere with flight)");
             }
             else if (!isJumpDisabled){
                 ChatQuestions.disableDoubleJump.put(player.getUniqueId(), true);
+                player.setAllowFlight(false);
                 player.sendMessage("§4Double Jumping is now disabled");
             }
             return true;
