@@ -20,7 +20,7 @@ public class ToggleFlightListener {
             }
             if (!ChatQuestions.isInAir.get(event.getPlayer().getUniqueId())) {
                 if (!ChatQuestions.disableDoubleJump.containsKey(event.getPlayer().getUniqueId())) {
-                    ChatQuestions.disableDoubleJump.put(event.getPlayer().getUniqueId(), false);
+                    ChatQuestions.disableDoubleJump.put(event.getPlayer().getUniqueId(), true);
                 }
                 if (!ChatQuestions.disableDoubleJump.get(event.getPlayer().getUniqueId())) {
                     Player player = event.getPlayer();

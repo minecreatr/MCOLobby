@@ -85,7 +85,7 @@ public class CommandListener {
             Player targetPlayer = Bukkit.getServer().getPlayer(targetID);
             player.sendMessage("§6To "+args[0]+"§f: "+message);
             targetPlayer.sendMessage("§6From "+player.getName()+"§f: "+message);
-            targetPlayer.playSound(targetPlayer.getLocation(), Sound.ANVIL_BREAK, 1, 1);
+            targetPlayer.playSound(targetPlayer.getLocation(), Sound.ANVIL_LAND, 1, 1);
             return true;
         }
         else if (cmd.getName().equalsIgnoreCase("pingmsgo")){
@@ -131,11 +131,11 @@ public class CommandListener {
         }
         else if (cmd.getName().equalsIgnoreCase("toggledjump")){
             boolean isJumpDisabled;
-            if (ChatQuestions.disableDoubleJump.containsKey(player.getName())){
-                isJumpDisabled = ChatQuestions.disableDoubleJump.get(player.getName());
+            if (ChatQuestions.disableDoubleJump.containsKey(player.getUniqueId())){
+                isJumpDisabled = ChatQuestions.disableDoubleJump.get(player.getUniqueId());
             }
             else {
-                isJumpDisabled = false;
+                isJumpDisabled = true;
             }
             if (isJumpDisabled){
                 ChatQuestions.disableDoubleJump.put(player.getUniqueId(), false);

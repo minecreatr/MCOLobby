@@ -3,12 +3,12 @@ package com.minecreatr.chatquestions;
 import com.minecreatr.chatquestions.listeners.ChatListener;
 import com.minecreatr.chatquestions.listeners.CommandListener;
 import com.minecreatr.chatquestions.listeners.ToggleFlightListener;
-import net.minecraft.server.v1_7_R3.EntityFireworks;
 import org.bukkit.*;
 import org.bukkit.block.BlockFace;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
-import org.bukkit.craftbukkit.v1_7_R3.CraftServer;
+import org.bukkit.craftbukkit.v1_7_R4.CraftServer;
+import org.bukkit.craftbukkit.v1_7_R4.entity.CraftPlayer;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -25,9 +25,7 @@ import org.bukkit.permissions.PermissionAttachment;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitScheduler;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * Created on 6/24/2014
@@ -38,6 +36,7 @@ public class ChatQuestions extends JavaPlugin implements Listener{
     public static String curQuestion = "";
     //red green yellow [MCO]
     public static String pluginPrefix = "[§cM§2C§eO§f§6C§dQ§f] ";
+    //player
     public static HashMap<UUID, Boolean> blockPing = new HashMap<UUID, Boolean>();
     public static HashMap<UUID, Boolean> disableDoubleJump = new HashMap<UUID, Boolean>();
     public static HashMap<UUID, Boolean> isInAir = new HashMap<UUID, Boolean>();
@@ -52,9 +51,10 @@ public class ChatQuestions extends JavaPlugin implements Listener{
         scheduler.scheduleSyncRepeatingTask(this, new Runnable() {
             @Override
             public void run() {
-                Player[] players = Bukkit.getServer().getOnlinePlayers();
-                for (int i=0; i<players.length;i++){
-                    Player curPlayer = players[i];
+                Collection<? extends Player> players = Bukkit.getServer().getOnlinePlayers();
+                Iterator<? extends Player> it = players.iterator();
+                while (it.hasNext()){
+                    Player curPlayer = it.next();
                     PlayerTickEvent playerTickEvent = new PlayerTickEvent(curPlayer);
                     getServer().getPluginManager().callEvent(playerTickEvent);
                 }
@@ -96,7 +96,7 @@ public class ChatQuestions extends JavaPlugin implements Listener{
         return commandListener.onCommand(sender, cmd, label, args);
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void playerToggleFlight(PlayerToggleFlightEvent event){
         toggleFlightListener.onToggle(event);
     }
@@ -105,7 +105,10 @@ public class ChatQuestions extends JavaPlugin implements Listener{
     public void onPlayerTick(PlayerTickEvent event){
         if (event.getPlayer().getLocation().getBlock().getRelative(BlockFace.DOWN).getType().isSolid()){
             isInAir.put(event.getPlayer().getUniqueId(), false);
-            if (event.getPlayer().getGameMode()!=GameMode.CREATIVE) {
+            if (disableDoubleJump.get(event.getPlayer().getUniqueId())==null){
+                disableDoubleJump.put(event.getPlayer().getUniqueId(), true);
+            }
+            if (event.getPlayer().getGameMode()!=GameMode.CREATIVE && !disableDoubleJump.get(event.getPlayer().getUniqueId())) {
                 event.getPlayer().setAllowFlight(true);
             }
         }
