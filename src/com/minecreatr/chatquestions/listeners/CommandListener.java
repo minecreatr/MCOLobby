@@ -219,26 +219,28 @@ public class CommandListener {
             }
             return true;
         }
-//        else if (cmd.getName().equalsIgnoreCase("toggledjump")){
-//            boolean isJumpDisabled;
-//            if (ChatQuestions.disableDoubleJump.containsKey(player.getUniqueId())){
-//                isJumpDisabled = ChatQuestions.disableDoubleJump.get(player.getUniqueId());
-//            }
-//            else {
-//                isJumpDisabled = true;
-//            }
-//            if (isJumpDisabled){
-//                ChatQuestions.disableDoubleJump.put(player.getUniqueId(), false);
-//                player.setAllowFlight(true);
-//                player.sendMessage("§6Double Jumping is now enabled (Will interfere with flight)");
-//            }
-//            else if (!isJumpDisabled){
-//                ChatQuestions.disableDoubleJump.put(player.getUniqueId(), true);
-//                player.setAllowFlight(false);
-//                player.sendMessage("§4Double Jumping is now disabled");
-//            }
-//            return true;
-//        }
+/* 
+        else if (cmd.getName().equalsIgnoreCase("toggledjump")){
+              boolean isJumpDisabled;
+              if (ChatQuestions.disableDoubleJump.containsKey(player.getUniqueId())){
+                  isJumpDisabled = ChatQuestions.disableDoubleJump.get(player.getUniqueId());
+              }
+              else {
+                  isJumpDisabled = true;
+              }
+              if (isJumpDisabled){
+                  ChatQuestions.disableDoubleJump.put(player.getUniqueId(), false);
+                  player.setAllowFlight(true);
+                  player.sendMessage("§6Double Jumping is now enabled (Will interfere with flight)");
+              }
+              else if (!isJumpDisabled){
+                  ChatQuestions.disableDoubleJump.put(player.getUniqueId(), true);
+                  player.setAllowFlight(false);
+                  player.sendMessage("§4Double Jumping is now disabled");
+              }
+              return true;
+          }
+*/
         else if(cmd.getName().equalsIgnoreCase("DoubleJump")){
             if(player.hasPermission("doublejump.use")){
                 if(!ChatQuestions.dJ.contains(player.getUniqueId())){
