@@ -64,7 +64,15 @@ public class ChatQuestions extends JavaPlugin implements Listener {
 
 
     public void onDisable() {
-
+        Iterator<UUID> ids = disableDoubleJump.keySet().iterator();
+        while (ids.hasNext()){
+            UUID curId = ids.next();
+            if (Bukkit.getPlayer(curId)!=null){
+                if (Bukkit.getPlayer(curId).getGameMode() != GameMode.CREATIVE){
+                    Bukkit.getPlayer(curId).setAllowFlight(false);
+                }
+            }
+        }
     }
 //    @EventHandler(priority = EventPriority.MONITOR)
 //    public void onPlayerAttack(EntityDamageByEntityEvent event){
