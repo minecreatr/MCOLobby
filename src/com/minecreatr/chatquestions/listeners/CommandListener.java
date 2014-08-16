@@ -8,12 +8,16 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.UUID;
 
 /**
  * Created on 8/11/2014
  */
 public class CommandListener {
+
+    public HashMap<UUID, UUID> toReply = new HashMap<UUID, UUID>();
     
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args){
         Player player = (Player) sender;
@@ -49,8 +53,10 @@ public class CommandListener {
             }
             ChatQuestions.curAnswer=answer.substring(1);
             ChatQuestions.curQuestion=question.substring(1);
+            Bukkit.broadcastMessage("");
             Bukkit.broadcastMessage(ChatQuestions.pluginPrefix + "§a§l" + ChatQuestions.curQuestion);
             Bukkit.broadcastMessage(ChatQuestions.pluginPrefix+"§5Asked by §f"+player.getDisplayName());
+            Bukkit.broadcastMessage("");
             return true;
         }
         else if (cmd.getName().equalsIgnoreCase("curQuestion")||cmd.getName().equalsIgnoreCase("currentquestion")){
@@ -93,15 +99,79 @@ public class CommandListener {
                 player.sendMessage("§4Could Not Find Target Player");
                 return true;
             }
-            if (ChatQuestions.blockPing.get(targetID)==null){
-                ChatQuestions.blockPing.put(targetID, false);
-            }
-            if (ChatQuestions.blockPing.get(targetID)){
+            if (ChatQuestions.blockPing.contains(targetID)){
                 player.sendMessage("§4This player has ping messages disabled");
                 return true;
             }
+            message = ChatQuestions.colorize(message);
             Player targetPlayer = Bukkit.getServer().getPlayer(targetID);
             player.sendMessage("§6To "+args[0]+"§f: "+message);
+            toReply.put(targetPlayer.getUniqueId(), player.getUniqueId());
+            toReply.put(player.getUniqueId(), targetPlayer.getUniqueId());
+            targetPlayer.sendMessage("§6From "+player.getName()+"§f: "+message);
+            targetPlayer.playSound(targetPlayer.getLocation(), Sound.ANVIL_LAND, 1, 1);
+            return true;
+        }
+        else if (cmd.getName().equalsIgnoreCase("pingreply")){
+            if (!toReply.containsKey(player.getUniqueId())){
+                player.sendMessage(ChatColor.RED+"You have no one to reply to!");
+                return true;
+            }
+            if(Bukkit.getPlayer(toReply.get(player.getUniqueId()))==null){
+                player.sendMessage(ChatColor.RED+"You have no one to reply to!");
+                toReply.remove(player.getUniqueId());
+                return true;
+            }
+            if (args.length<1){
+                return false;
+            }
+            UUID targetID = toReply.get(player.getUniqueId());
+            if (ChatQuestions.blockPing.contains(targetID)){
+                player.sendMessage("§4This player has ping messages disabled");
+                return true;
+            }
+            String message = "";
+            for (int i=0;i<args.length;i++){
+                message = message+args[i]+" ";
+            }
+            message = ChatQuestions.colorize(message);
+
+            Player targetPlayer = Bukkit.getServer().getPlayer(targetID);
+            player.sendMessage("§6To "+Bukkit.getPlayer(targetID).getName()+"§f: "+message);
+            toReply.put(targetPlayer.getUniqueId(), player.getUniqueId());
+            toReply.put(player.getUniqueId(), targetPlayer.getUniqueId());
+            targetPlayer.sendMessage("§6From "+player.getName()+"§f: "+message);
+            targetPlayer.playSound(targetPlayer.getLocation(), Sound.ANVIL_LAND, 1, 1);
+            return true;
+        }
+        else if (cmd.getName().equalsIgnoreCase("pingreplyo")){
+            if (!player.isOp()){
+                player.sendMessage("§4You do not have permission to run this command");
+                return true;
+            }
+            if (!toReply.containsKey(player.getUniqueId())){
+                player.sendMessage(ChatColor.RED+"You have no one to reply to!");
+                return true;
+            }
+            if(Bukkit.getPlayer(toReply.get(player.getUniqueId()))==null){
+                player.sendMessage(ChatColor.RED+"You have no one to reply to!");
+                toReply.remove(player.getUniqueId());
+                return true;
+            }
+            if (args.length<1){
+                return false;
+            }
+            UUID targetID = toReply.get(player.getUniqueId());
+            String message = "";
+            for (int i=0;i<args.length;i++){
+                message = message+args[i]+" ";
+            }
+            message = ChatQuestions.colorize(message);
+
+            Player targetPlayer = Bukkit.getServer().getPlayer(targetID);
+            player.sendMessage("§6To "+Bukkit.getPlayer(targetID).getName()+"§f: "+message);
+            toReply.put(targetPlayer.getUniqueId(), player.getUniqueId());
+            toReply.put(player.getUniqueId(), targetPlayer.getUniqueId());
             targetPlayer.sendMessage("§6From "+player.getName()+"§f: "+message);
             targetPlayer.playSound(targetPlayer.getLocation(), Sound.ANVIL_LAND, 1, 1);
             return true;
@@ -126,23 +196,25 @@ public class CommandListener {
             Player targetPlayer = Bukkit.getServer().getPlayer(targetID);
             player.sendMessage("§6To "+targetID+"§f: "+message);
             targetPlayer.sendMessage("§6From "+player.getName()+"§f: "+message);
+            toReply.put(targetPlayer.getUniqueId(), player.getUniqueId());
+            toReply.put(player.getUniqueId(), targetPlayer.getUniqueId());
             targetPlayer.playSound(targetPlayer.getLocation(), Sound.ANVIL_BREAK, 1, 1);
             return true;
         }
         else if (cmd.getName().equalsIgnoreCase("toggleping")){
             boolean isPingBlocked;
-            if (ChatQuestions.blockPing.containsKey(player.getUniqueId())){
-                isPingBlocked=ChatQuestions.blockPing.get(player.getUniqueId());
+            if (ChatQuestions.blockPing.contains(player.getUniqueId())){
+                isPingBlocked=ChatQuestions.blockPing.contains(player.getUniqueId());
             }
             else {
                 isPingBlocked=false;
             }
             if (isPingBlocked){
-                ChatQuestions.blockPing.put(player.getUniqueId(), false);
+                ChatQuestions.blockPing.add(player.getUniqueId());
                 player.sendMessage("§6Message Pinging is now enabled");
             }
             else if (!isPingBlocked){
-                ChatQuestions.blockPing.put(player.getUniqueId(), true);
+                ChatQuestions.blockPing.add(player.getUniqueId());
                 player.sendMessage("§4Message Pinging is now disabled");
             }
             return true;
@@ -171,6 +243,7 @@ public class CommandListener {
             if(player.hasPermission("doublejump.use")){
                 if(!ChatQuestions.dJ.contains(player.getUniqueId())){
                     player.sendMessage(ChatQuestions.enabledD);
+                    player.sendMessage(ChatQuestions.doubleJumpD);
                     ChatQuestions.dJ.add(player.getUniqueId());
 
                 }else{

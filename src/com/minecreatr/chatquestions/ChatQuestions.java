@@ -34,12 +34,13 @@ import java.util.UUID;
  */
 public class ChatQuestions extends JavaPlugin implements Listener {
 
+    public static final String section = "§";
     public static String curAnswer = "";
     public static String curQuestion = "";
     //red green yellow [MCO]
     public static String pluginPrefix = "[§cM§2C§eO§f§6C§dQ§f] ";
-    public static HashMap<UUID, Boolean> blockPing = new HashMap<UUID, Boolean>();
-    public static HashMap<UUID, Boolean> disableDoubleJump = new HashMap<UUID, Boolean>();
+    public static ArrayList<UUID> blockPing = new ArrayList<UUID>();
+    public static ArrayList<UUID> disableDoubleJump = new ArrayList<UUID>();
     //public static HashMap<UUID, Boolean> isInAir = new HashMap<UUID, Boolean>();
     private ChatListener chatListener = new ChatListener();
     private CommandListener commandListener = new CommandListener();
@@ -53,6 +54,7 @@ public class ChatQuestions extends JavaPlugin implements Listener {
     public static String enabledD = ChatColor.GREEN + "Enabled Double Jump!";
     public static String disabledD = ChatColor.RED + "Disabled Double Jump!";
     public static String noPermD = "" + ChatColor.RED + ChatColor.ITALIC + "Donate to get the ability to Double Jump!";
+    public static String doubleJumpD = "" + ChatColor.GREEN + ChatColor.UNDERLINE + "To Doublejump hold shift and jump!";
 
 
     public void onEnable() {
@@ -187,6 +189,23 @@ public class ChatQuestions extends JavaPlugin implements Listener {
             }
         };
         s.scheduleSyncDelayedTask(this, reset, 3 * 20);
+    }
+
+    public static String colorize(String in){
+        if (!in.contains(section)){
+            return in;
+        }
+        char[] chars = in.toCharArray();
+        String out = "";
+        for (int i=0;i<chars.length;i++){
+            if (chars[i]=='&'){
+                out=out+section;
+            }
+            else {
+                out=out+chars[i];
+            }
+        }
+        return out;
     }
 
 //    @EventHandler(priority = EventPriority.HIGHEST)

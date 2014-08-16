@@ -17,14 +17,11 @@ import org.bukkit.util.Vector;
 public class ToggleFlightListener {
 
     public void onToggle(PlayerToggleFlightEvent event){
-        if (!ChatQuestions.disableDoubleJump.containsKey(event.getPlayer().getUniqueId())) {
-            ChatQuestions.disableDoubleJump.put(event.getPlayer().getUniqueId(), true);
-        }
         //event.getPlayer().sendMessage("Is jumping disabled: "+ ChatQuestions.disableDoubleJump.get(event.getPlayer().getUniqueId()));
         //event.getPlayer().sendMessage("Is on ground: "+isOnGround(event.getPlayer()));
-        if (event.getPlayer().getGameMode()!= GameMode.CREATIVE && !ChatQuestions.disableDoubleJump.get(event.getPlayer().getUniqueId())) {
+        if (event.getPlayer().getGameMode()!= GameMode.CREATIVE && !ChatQuestions.disableDoubleJump.contains(event.getPlayer().getUniqueId())) {
             if (isOnGround(event.getPlayer())) {
-                if (!ChatQuestions.disableDoubleJump.get(event.getPlayer().getUniqueId())) {
+                if (!ChatQuestions.disableDoubleJump.contains(event.getPlayer().getUniqueId())) {
                     Player player = event.getPlayer();
                     if (event.isFlying()) {
                         player.setVelocity(player.getLocation().getDirection().add(player.getLocation().getDirection().add(player.getLocation().getDirection().add(player.getLocation().getDirection().add(player.getLocation().getDirection().add(player.getLocation().getDirection().add(player.getLocation().getDirection().add(player.getLocation().getDirection().add(player.getLocation().getDirection())))))))));

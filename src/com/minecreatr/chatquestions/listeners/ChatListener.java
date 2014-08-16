@@ -14,14 +14,17 @@ public class ChatListener {
 
     public void onChat(AsyncPlayerChatEvent event){
         Player player = event.getPlayer();
-        if (player.getName().equals("minecreatr")){
-            event.setCancelled(false);
-        }
+        //its a shame to delete good code
+//        if (player.getName().equals("minecreatr")){
+//            event.setCancelled(false);
+//        }
         if ((!(ChatQuestions.curAnswer.equalsIgnoreCase("")))&& ChatQuestions.containsIgnoreCase(event.getMessage(), ChatQuestions.curAnswer)){
             player.sendMessage(ChatQuestions.pluginPrefix+"§e§lCongratulations you guessed correctly");
+            Bukkit.broadcastMessage("");
             Bukkit.broadcastMessage(ChatQuestions.pluginPrefix + player.getDisplayName() + " §9has answered the question correctly!!!");
             Bukkit.broadcastMessage(ChatQuestions.pluginPrefix+"§9The correct answer was §c§l"+ChatQuestions.curAnswer);
             Bukkit.broadcastMessage(ChatQuestions.pluginPrefix+"§9and the question was §c§l"+ChatQuestions.curQuestion);
+            Bukkit.broadcastMessage("");
             ChatQuestions.curAnswer="";
             ChatQuestions.curQuestion="";
             event.setCancelled(true);
