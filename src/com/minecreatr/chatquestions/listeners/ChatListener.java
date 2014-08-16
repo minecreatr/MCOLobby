@@ -18,10 +18,10 @@ public class ChatListener {
             event.setCancelled(false);
         }
         if ((!(ChatQuestions.curAnswer.equalsIgnoreCase("")))&& ChatQuestions.containsIgnoreCase(event.getMessage(), ChatQuestions.curAnswer)){
-            player.sendMessage(ChatQuestions.pluginPrefix+"§e§lCONGRATULATIONS YOU GUESSED CORRECTLY");
-            Bukkit.broadcastMessage(ChatQuestions.pluginPrefix + player.getDisplayName() + " §9HAS ANSWERED THE QESTION CORRECTLY!!!");
-            Bukkit.broadcastMessage(ChatQuestions.pluginPrefix+"§9THE CORRECT ANSWER WAS §c§l"+ChatQuestions.curAnswer.toUpperCase());
-            Bukkit.broadcastMessage(ChatQuestions.pluginPrefix+"§9AND THE QUESTION WAS §c§l"+ChatQuestions.curQuestion.toUpperCase());
+            player.sendMessage(ChatQuestions.pluginPrefix+"§e§lCongratulations you guessed correctly");
+            Bukkit.broadcastMessage(ChatQuestions.pluginPrefix + player.getDisplayName() + " §9has answered the question correctly!!!");
+            Bukkit.broadcastMessage(ChatQuestions.pluginPrefix+"§9The correct answer was §c§l"+ChatQuestions.curAnswer);
+            Bukkit.broadcastMessage(ChatQuestions.pluginPrefix+"§9and the question was §c§l"+ChatQuestions.curQuestion);
             ChatQuestions.curAnswer="";
             ChatQuestions.curQuestion="";
             event.setCancelled(true);

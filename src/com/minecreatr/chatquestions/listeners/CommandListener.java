@@ -2,6 +2,7 @@ package com.minecreatr.chatquestions.listeners;
 
 import com.minecreatr.chatquestions.ChatQuestions;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.Sound;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -42,6 +43,10 @@ public class CommandListener {
                     answer = answer+" "+args[i];
                 }
             }
+            if (answer.contains("||") || answer.contains("::") || answer.contains(";;")){
+                player.sendMessage("Please put in a valid answer");
+                return true;
+            }
             ChatQuestions.curAnswer=answer.substring(1);
             ChatQuestions.curQuestion=question.substring(1);
             Bukkit.broadcastMessage(ChatQuestions.pluginPrefix + "§a§l" + ChatQuestions.curQuestion);
@@ -54,6 +59,19 @@ public class CommandListener {
             }
             else {
                 player.sendMessage("No Current Question");
+            }
+            return true;
+        }
+        else if (cmd.getName().equalsIgnoreCase("curAnswer")){
+            if (player.isOp()) {
+                if (ChatQuestions.curAnswer != "") {
+                    player.sendMessage(ChatQuestions.pluginPrefix + "§9" + ChatQuestions.curAnswer);
+                } else {
+                    player.sendMessage("No Current answer");
+                }
+            }
+            else {
+                player.sendMessage(ChatColor.RED+"You dont have permission to use this command");
             }
             return true;
         }
@@ -129,23 +147,52 @@ public class CommandListener {
             }
             return true;
         }
-        else if (cmd.getName().equalsIgnoreCase("toggledjump")){
-            boolean isJumpDisabled;
-            if (ChatQuestions.disableDoubleJump.containsKey(player.getUniqueId())){
-                isJumpDisabled = ChatQuestions.disableDoubleJump.get(player.getUniqueId());
+//        else if (cmd.getName().equalsIgnoreCase("toggledjump")){
+//            boolean isJumpDisabled;
+//            if (ChatQuestions.disableDoubleJump.containsKey(player.getUniqueId())){
+//                isJumpDisabled = ChatQuestions.disableDoubleJump.get(player.getUniqueId());
+//            }
+//            else {
+//                isJumpDisabled = true;
+//            }
+//            if (isJumpDisabled){
+//                ChatQuestions.disableDoubleJump.put(player.getUniqueId(), false);
+//                player.setAllowFlight(true);
+//                player.sendMessage("§6Double Jumping is now enabled (Will interfere with flight)");
+//            }
+//            else if (!isJumpDisabled){
+//                ChatQuestions.disableDoubleJump.put(player.getUniqueId(), true);
+//                player.setAllowFlight(false);
+//                player.sendMessage("§4Double Jumping is now disabled");
+//            }
+//            return true;
+//        }
+        else if(cmd.getName().equalsIgnoreCase("DoubleJump")){
+            if(player.hasPermission("doublejump.use")){
+                if(!ChatQuestions.dJ.contains(player.getUniqueId())){
+                    player.sendMessage(ChatQuestions.enabledD);
+                    ChatQuestions.dJ.add(player.getUniqueId());
+
+                }else{
+                    player.sendMessage(ChatQuestions.disabledD);
+                    ChatQuestions.dJ.remove(player.getUniqueId());
+                }
+            }else{player.sendMessage(ChatQuestions.noPermD);}
+            return true;
+        }
+        else if (cmd.getName().equalsIgnoreCase("ignorejumpcooldown")){
+            if (player.isOp()){
+                if (ChatQuestions.noCountdown.contains(player.getUniqueId())){
+                    ChatQuestions.noCountdown.remove(player.getUniqueId());
+                    player.sendMessage(ChatColor.RED+"Not Ignoring Jump Cooldown");
+                }
+                else {
+                    ChatQuestions.noCountdown.add(player.getUniqueId());
+                    player.sendMessage(ChatColor.GREEN+"Ignoring Jump Cooldown");
+                }
             }
             else {
-                isJumpDisabled = true;
-            }
-            if (isJumpDisabled){
-                ChatQuestions.disableDoubleJump.put(player.getUniqueId(), false);
-                player.setAllowFlight(true);
-                player.sendMessage("§6Double Jumping is now enabled (Will interfere with flight)");
-            }
-            else if (!isJumpDisabled){
-                ChatQuestions.disableDoubleJump.put(player.getUniqueId(), true);
-                player.setAllowFlight(false);
-                player.sendMessage("§4Double Jumping is now disabled");
+                player.sendMessage(ChatColor.RED+"You do not have permission to perform this command");
             }
             return true;
         }
