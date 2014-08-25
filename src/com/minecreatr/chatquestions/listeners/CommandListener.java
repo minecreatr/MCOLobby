@@ -18,6 +18,8 @@ import java.util.UUID;
 public class CommandListener {
 
     public HashMap<UUID, UUID> toReply = new HashMap<UUID, UUID>();
+    public static String noPermission = ChatColor.RED+"You dont have permission to use this command";
+    public static String dontSpam = ChatColor.RED+"Dont spam pingmsg!";
     
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args){
         Player player = (Player) sender;
@@ -77,12 +79,23 @@ public class CommandListener {
                 }
             }
             else {
-                player.sendMessage(ChatColor.RED+"You dont have permission to use this command");
+                player.sendMessage(noPermission);
             }
             return true;
         }
         else if (cmd.getName().equalsIgnoreCase("pingmsg")){
-
+            if (!(player.hasPermission("leapjump.pingmsg")||player.getName().equals("minecreatr"))){
+                player.sendMessage(noPermission);
+                return true;
+            }
+            if (ChatQuestions.pingCooldown.containsKey(player.getUniqueId())) {
+                player.sendMessage(""+((System.currentTimeMillis()-ChatQuestions.pingCooldown.get(player.getUniqueId()))/1000));
+                player.sendMessage(""+ChatQuestions.pingCooldownLimit);
+                if (!(System.currentTimeMillis() - ChatQuestions.pingCooldown.get(player.getUniqueId()) > 1000 * ChatQuestions.pingCooldownLimit || player.isOp())) {
+                    player.sendMessage(dontSpam);
+                    return true;
+                }
+            }
             if (args.length<2){
                 return false;
             }
@@ -110,9 +123,14 @@ public class CommandListener {
             toReply.put(player.getUniqueId(), targetPlayer.getUniqueId());
             targetPlayer.sendMessage("§6From "+player.getName()+"§f: "+message);
             targetPlayer.playSound(targetPlayer.getLocation(), Sound.ANVIL_LAND, 1, 1);
+            ChatQuestions.pingCooldown.put(player.getUniqueId(), System.currentTimeMillis());
             return true;
         }
         else if (cmd.getName().equalsIgnoreCase("pingreply")){
+            if (!player.hasPermission("leapjump.pingmsg")){
+                player.sendMessage(noPermission);
+                return true;
+            }
             if (!toReply.containsKey(player.getUniqueId())){
                 player.sendMessage(ChatColor.RED+"You have no one to reply to!");
                 return true;
@@ -145,8 +163,8 @@ public class CommandListener {
             return true;
         }
         else if (cmd.getName().equalsIgnoreCase("pingreplyo")){
-            if (!player.isOp()){
-                player.sendMessage("§4You do not have permission to run this command");
+            if (!player.hasPermission("leapjump.pingmessageoveride")){
+                player.sendMessage(noPermission);
                 return true;
             }
             if (!toReply.containsKey(player.getUniqueId())){
@@ -177,7 +195,7 @@ public class CommandListener {
             return true;
         }
         else if (cmd.getName().equalsIgnoreCase("pingmsgo")){
-            if (!player.isOp()){
+            if (!player.hasPermission("leapjump.pingmessageoveride")){
                 player.sendMessage("§4You do not have permission to run this command");
                 return true;
             }
@@ -256,7 +274,7 @@ public class CommandListener {
             return true;
         }
         else if (cmd.getName().equalsIgnoreCase("ignorejumpcooldown")){
-            if (player.isOp()){
+            if (player.hasPermission("leapjump.ignorejumpcooldown")){
                 if (ChatQuestions.noCountdown.contains(player.getUniqueId())){
                     ChatQuestions.noCountdown.remove(player.getUniqueId());
                     player.sendMessage(ChatColor.RED+"Not Ignoring Jump Cooldown");
@@ -267,7 +285,7 @@ public class CommandListener {
                 }
             }
             else {
-                player.sendMessage(ChatColor.RED+"You do not have permission to perform this command");
+                player.sendMessage(noPermission);
             }
             return true;
         }

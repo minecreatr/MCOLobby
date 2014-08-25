@@ -37,6 +37,7 @@ public class ChatQuestions extends JavaPlugin implements Listener {
     public static final String section = "§";
     public static String curAnswer = "";
     public static String curQuestion = "";
+    public static int pingCooldownLimit;
     //red green yellow [MCO]
     public static String pluginPrefix = "[§cM§2C§eO§f§6C§dQ§f] ";
     public static ArrayList<UUID> blockPing = new ArrayList<UUID>();
@@ -50,9 +51,10 @@ public class ChatQuestions extends JavaPlugin implements Listener {
     public static ArrayList<UUID> dJ = new ArrayList<UUID>();
     public static ArrayList<UUID> noCountdown = new ArrayList<UUID>();
     public static HashMap<UUID, Long> cooldown = new HashMap<UUID, Long>();
+    public static HashMap<UUID, Long> pingCooldown = new HashMap<UUID, Long>();
 
-    public static String enabledD = ChatColor.GREEN + "Enabled Leap Jump Jump!";
-    public static String disabledD = ChatColor.RED + "Disabled Leap Jump Jump!";
+    public static String enabledD = ChatColor.GREEN + "Enabled Leap Jump!";
+    public static String disabledD = ChatColor.RED + "Disabled Leap Jump!";
     public static String noPermD = "" + ChatColor.RED + ChatColor.ITALIC + "Donate to get the ability to Leap Jump!";
     public static String doubleJumpD = "" + ChatColor.GREEN + ChatColor.UNDERLINE + "To Leap Jump hold shift and jump!";
 
@@ -75,11 +77,18 @@ public class ChatQuestions extends JavaPlugin implements Listener {
 //        chatListener = new ChatListener();
 //        commandListener = new CommandListener();
 //        toggleFlightListener = new ToggleFlightListener();
+        if (this.getConfig().getInt("pingMsgCooldown")==0){
+            pingCooldownLimit = 3;
+            this.getLogger().info("Could not find pingmsg cooldown, setting to 3");
+        }
+        else {
+            pingCooldownLimit = this.getConfig().getInt("pingMsgCooldown");
+            this.getLogger().info("Setting pingmsg cooldown to "+this.getConfig().getInt("pingMsgCooldown"));
+        }
     }
 
 
     public void onDisable() {
-
     }
 //    @EventHandler(priority = EventPriority.MONITOR)
 //    public void onPlayerAttack(EntityDamageByEntityEvent event){
