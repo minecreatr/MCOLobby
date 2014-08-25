@@ -89,8 +89,8 @@ public class CommandListener {
                 return true;
             }
             if (ChatQuestions.pingCooldown.containsKey(player.getUniqueId())) {
-                player.sendMessage(""+((System.currentTimeMillis()-ChatQuestions.pingCooldown.get(player.getUniqueId()))/1000));
-                player.sendMessage(""+ChatQuestions.pingCooldownLimit);
+                //player.sendMessage(""+((System.currentTimeMillis()-ChatQuestions.pingCooldown.get(player.getUniqueId()))/1000));
+                //player.sendMessage(""+ChatQuestions.pingCooldownLimit);
                 if (!(System.currentTimeMillis() - ChatQuestions.pingCooldown.get(player.getUniqueId()) > 1000 * ChatQuestions.pingCooldownLimit || player.isOp())) {
                     player.sendMessage(dontSpam);
                     return true;
@@ -228,7 +228,7 @@ public class CommandListener {
                 isPingBlocked=false;
             }
             if (isPingBlocked){
-                ChatQuestions.blockPing.add(player.getUniqueId());
+                ChatQuestions.blockPing.remove(player.getUniqueId());
                 player.sendMessage("§6Message Pinging is now enabled");
             }
             else if (!isPingBlocked){
