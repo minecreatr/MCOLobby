@@ -51,10 +51,10 @@ public class ChatQuestions extends JavaPlugin implements Listener {
     public static ArrayList<UUID> noCountdown = new ArrayList<UUID>();
     public static HashMap<UUID, Long> cooldown = new HashMap<UUID, Long>();
 
-    public static String enabledD = ChatColor.GREEN + "Enabled Double Jump!";
-    public static String disabledD = ChatColor.RED + "Disabled Double Jump!";
-    public static String noPermD = "" + ChatColor.RED + ChatColor.ITALIC + "Donate to get the ability to Double Jump!";
-    public static String doubleJumpD = "" + ChatColor.GREEN + ChatColor.UNDERLINE + "To Doublejump hold shift and jump!";
+    public static String enabledD = ChatColor.GREEN + "Enabled Leap Jump Jump!";
+    public static String disabledD = ChatColor.RED + "Disabled Leap Jump Jump!";
+    public static String noPermD = "" + ChatColor.RED + ChatColor.ITALIC + "Donate to get the ability to Leap Jump!";
+    public static String doubleJumpD = "" + ChatColor.GREEN + ChatColor.UNDERLINE + "To Leap Jump hold shift and jump!";
 
 
     public void onEnable() {

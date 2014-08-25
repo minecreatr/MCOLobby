@@ -21,7 +21,7 @@ public class CommandListener {
     
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args){
         Player player = (Player) sender;
-        if (cmd.getName().equalsIgnoreCase("question") && (player.hasPermission("chatquestions.askquestion")||player.isOp())){
+        if (cmd.getName().equalsIgnoreCase("question") && (player.hasPermission("leapjump.askquestion")||player.isOp())){
             if (args.length<3){
                 return false;
             }
@@ -241,8 +241,8 @@ public class CommandListener {
               return true;
           }
 */
-        else if(cmd.getName().equalsIgnoreCase("DoubleJump")){
-            if(player.hasPermission("doublejump.use")){
+        else if(cmd.getName().equalsIgnoreCase("LeapJump")){
+            if(player.hasPermission("leapjump.use")){
                 if(!ChatQuestions.dJ.contains(player.getUniqueId())){
                     player.sendMessage(ChatQuestions.enabledD);
                     player.sendMessage(ChatQuestions.doubleJumpD);
