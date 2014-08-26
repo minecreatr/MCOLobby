@@ -36,6 +36,7 @@ public class ChatListener {
             ChatQuestions.curQuestion="";
             ChatQuestions.questionUUID=null;
             ChatQuestions.curAsker="";
+            ChatQuestions.curHints.clear();
             int curNum = instance.getQuestionStats().getInt(player.getName());
             instance.getQuestionStats().set(player.getName(), curNum+1);
             event.setCancelled(true);

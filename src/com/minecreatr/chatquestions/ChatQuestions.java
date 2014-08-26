@@ -123,6 +123,7 @@ public class ChatQuestions extends JavaPlugin implements Listener {
                     curQuestion="";
                     curAnswer="";
                     questionUUID=null;
+                    curHints.clear();
                 }
             }
         }, questionTimeout);

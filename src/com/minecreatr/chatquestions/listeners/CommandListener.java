@@ -8,9 +8,7 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * Created on 8/11/2014
@@ -25,7 +23,25 @@ public class CommandListener {
     public CommandListener(ChatQuestions q){
         instance=q;
     }
-    
+
+    static Map sortByValue(Map map) {
+        List list = new LinkedList(map.entrySet());
+        Collections.sort(list, new Comparator() {
+            public int compare(Object o1, Object o2) {
+                return ((Comparable) ((Map.Entry) (o1)).getValue())
+                        .compareTo(((Map.Entry) (o2)).getValue());
+            }
+        });
+
+        Map result = new LinkedHashMap();
+        for (Iterator it = list.iterator(); it.hasNext();) {
+            Map.Entry entry = (Map.Entry)it.next();
+            result.put(entry.getKey(), entry.getValue());
+        }
+        return result;
+    }
+
+
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args){
         Player player = (Player) sender;
         if (cmd.getName().equalsIgnoreCase("question") && (player.hasPermission("leapjump.askquestion")||player.isOp())){
@@ -59,7 +75,7 @@ public class CommandListener {
                 return true;
             }
             if (ChatQuestions.isDirty(answer)||ChatQuestions.isDirty(question)){
-                player.sendMessage(ChatColor.AQUA+"You cannot ask a question that contains that word(s)");
+                player.sendMessage(ChatColor.AQUA+"You cannot ask a question that contains that word!");
                 return true;
             }
             if (answer==""){
@@ -70,6 +86,7 @@ public class CommandListener {
                 player.sendMessage(ChatColor.RED+"Please provide a valid question");
                 return true;
             }
+            ChatQuestions.curHints.clear();
             ChatQuestions.curAnswer=answer.substring(1);
             ChatQuestions.curQuestion=question.substring(1);
             ChatQuestions.questionUUID = new UUID(ChatQuestions.getValue(answer.substring(1)), ChatQuestions.getValue(question.substring(1)));
@@ -107,6 +124,15 @@ public class CommandListener {
             }
             int answers = instance.getQuestionStats().getInt(args[0]);
             player.sendMessage(ChatQuestions.pluginPrefix+"The player "+args[0]+" has answered "+answers+" questions");
+            return true;
+        }
+        else if (cmd.getName().equalsIgnoreCase("stats")){
+            //todo here
+            Iterator<Map.Entry<String, Integer>> itr = sortByValue(instance.getQuestionStats().getValues(false)).entrySet().iterator();
+            while (itr.hasNext()){
+                Map.Entry<String, Integer> cur = itr.next();
+                player.sendMessage(ChatQuestions.pluginPrefix+cur.getKey()+": "+cur.getValue());
+            }
             return true;
         }
         else if (cmd.getName().equalsIgnoreCase("curQuestion")||cmd.getName().equalsIgnoreCase("currentquestion")){
