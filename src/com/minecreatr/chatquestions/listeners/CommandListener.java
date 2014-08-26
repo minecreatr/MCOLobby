@@ -20,6 +20,11 @@ public class CommandListener {
     public HashMap<UUID, UUID> toReply = new HashMap<UUID, UUID>();
     public static String noPermission = ChatColor.RED+"You dont have permission to use this command";
     public static String dontSpam = ChatColor.RED+"Dont spam pingmsg!";
+    public static ChatQuestions instance;
+
+    public CommandListener(ChatQuestions q){
+        instance=q;
+    }
     
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args){
         Player player = (Player) sender;
@@ -50,20 +55,66 @@ public class CommandListener {
                 }
             }
             if (answer.contains("||") || answer.contains("::") || answer.contains(";;")){
-                player.sendMessage("Please put in a valid answer");
+                player.sendMessage(ChatColor.RED+"Please provide a valid answer");
+                return true;
+            }
+            if (ChatQuestions.isDirty(answer)||ChatQuestions.isDirty(question)){
+                player.sendMessage(ChatColor.AQUA+"You cannot ask a question that contains that word(s)");
+                return true;
+            }
+            if (answer==""){
+                player.sendMessage(ChatColor.RED+"Please provide a valid answer");
+                return true;
+            }
+            if (question==""){
+                player.sendMessage(ChatColor.RED+"Please provide a valid question");
                 return true;
             }
             ChatQuestions.curAnswer=answer.substring(1);
             ChatQuestions.curQuestion=question.substring(1);
+            ChatQuestions.questionUUID = new UUID(ChatQuestions.getValue(answer.substring(1)), ChatQuestions.getValue(question.substring(1)));
+            ChatQuestions.curAsker=player.getName();
+            instance.expire(ChatQuestions.questionUUID);
             Bukkit.broadcastMessage("");
             Bukkit.broadcastMessage(ChatQuestions.pluginPrefix + "§a§l" + ChatQuestions.curQuestion);
             Bukkit.broadcastMessage(ChatQuestions.pluginPrefix+"§5Asked by §f"+player.getDisplayName());
             Bukkit.broadcastMessage("");
             return true;
         }
+        else if (cmd.getName().equalsIgnoreCase("hint") && (player.hasPermission("leapjump.askquestion")||player.isOp())){
+            if (args.length<1){
+                return false;
+            }
+            if (ChatQuestions.curAsker==""){
+                player.sendMessage(ChatColor.RED+"There is no currently active question!");
+                return true;
+            }
+            if (!player.getName().equals(ChatQuestions.curAsker)){
+                player.sendMessage(ChatColor.RED+"You are not the player who asked this question!");
+                return true;
+            }
+            String out = "";
+            for (int i=0;i<args.length;i++){
+                out=out+args[i]+" ";
+            }
+            Bukkit.broadcastMessage(ChatQuestions.pluginPrefix+ChatColor.BLUE+ChatColor.BOLD+"HINT: "+ChatColor.RESET+out);
+            ChatQuestions.curHints.add(out);
+            return true;
+        }
+        else if (cmd.getName().equalsIgnoreCase("stat")){
+            if (args.length!=1){
+                return false;
+            }
+            int answers = instance.getQuestionStats().getInt(args[0]);
+            player.sendMessage(ChatQuestions.pluginPrefix+"The player "+args[0]+" has answered "+answers+" questions");
+            return true;
+        }
         else if (cmd.getName().equalsIgnoreCase("curQuestion")||cmd.getName().equalsIgnoreCase("currentquestion")){
             if (ChatQuestions.curQuestion!=""){
                 player.sendMessage(ChatQuestions.pluginPrefix+"§9"+ ChatQuestions.curQuestion);
+                for (int i=0;i<ChatQuestions.curHints.size();i++){
+                    player.sendMessage(ChatQuestions.pluginPrefix+ChatColor.BLUE+ChatColor.BOLD+"HINT: "+ChatColor.RESET+ChatQuestions.curHints.get(i));
+                }
             }
             else {
                 player.sendMessage("No Current Question");
@@ -84,7 +135,7 @@ public class CommandListener {
             return true;
         }
         else if (cmd.getName().equalsIgnoreCase("pingmsg")){
-            if (!(player.hasPermission("leapjump.pingmsg")||player.getName().equals("minecreatr"))){
+            if (!(player.hasPermission("leapjump.pingmsg"))){
                 player.sendMessage(noPermission);
                 return true;
             }

@@ -7,6 +7,8 @@ import org.bukkit.*;
 import org.bukkit.block.BlockFace;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.craftbukkit.v1_7_R4.CraftServer;
 import org.bukkit.craftbukkit.v1_7_R4.entity.CraftPlayer;
 import org.bukkit.entity.EntityType;
@@ -24,10 +26,15 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitScheduler;
 import org.bukkit.util.Vector;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.UUID;
+import java.util.logging.Level;
 
 /**
  * Created on 6/24/2014
@@ -37,14 +44,19 @@ public class ChatQuestions extends JavaPlugin implements Listener {
     public static final String section = "§";
     public static String curAnswer = "";
     public static String curQuestion = "";
+    public static String curAsker = "";
+    public static ArrayList<String> curHints = new ArrayList<String>();
+    public static UUID questionUUID;
     public static int pingCooldownLimit;
+    public final static long questionTimeout = 20*60*3;
     //red green yellow [MCO]
     public static String pluginPrefix = "[§cM§2C§eO§f§6C§dQ§f] ";
     public static ArrayList<UUID> blockPing = new ArrayList<UUID>();
     public static ArrayList<UUID> disableDoubleJump = new ArrayList<UUID>();
+    public static ArrayList<String> filter = new ArrayList<String>();
     //public static HashMap<UUID, Boolean> isInAir = new HashMap<UUID, Boolean>();
-    private ChatListener chatListener = new ChatListener();
-    private CommandListener commandListener = new CommandListener();
+    private ChatListener chatListener = new ChatListener(this);
+    private CommandListener commandListener = new CommandListener(this);
     private ToggleFlightListener toggleFlightListener = new ToggleFlightListener();
 
     //If player can double jump
@@ -58,25 +70,86 @@ public class ChatQuestions extends JavaPlugin implements Listener {
     public static String noPermD = "" + ChatColor.RED + ChatColor.ITALIC + "Donate to get the ability to Leap Jump!";
     public static String doubleJumpD = "" + ChatColor.GREEN + ChatColor.UNDERLINE + "To Leap Jump hold shift and jump!";
 
+    private FileConfiguration questionStats= null;
+    private File questionStatsFile = null;
+
+    //gets a long representation of a string value
+    public static long getValue(String in){
+        char[] chars = in.toCharArray();
+        long out = 0;
+        for (int i=0;i<chars.length;i++){
+            out=out+chars[i];
+        }
+        return out;
+    }
+
+    //reload question stats
+    public void reloadQuestionStats(){
+        if(questionStatsFile==null){
+            questionStatsFile = new File(getDataFolder(), "questionStats.yml");
+        }
+        questionStats = YamlConfiguration.loadConfiguration(questionStatsFile);
+    }
+
+    //get question stats
+    public FileConfiguration getQuestionStats() {
+        if (questionStatsFile == null) {
+            reloadQuestionStats();
+        }
+        return questionStats;
+    }
+
+
+    public void saveQuestionStatsList() {
+        if (questionStats == null || questionStatsFile == null) {
+            return;
+        }
+        try {
+            getQuestionStats().save(questionStatsFile);
+        } catch (IOException ex) {
+            getLogger().log(Level.SEVERE, "Could not save config to " + questionStatsFile, ex);
+        }
+    }
+
+    public void expire(final UUID id){
+        BukkitScheduler s = Bukkit.getScheduler();
+        s.scheduleSyncDelayedTask(this, new Runnable() {
+            @Override
+            public void run() {
+                if (id==ChatQuestions.questionUUID){
+                    Bukkit.broadcastMessage(ChatQuestions.pluginPrefix + " §6No one has answered the question ):");
+                    Bukkit.broadcastMessage(ChatQuestions.pluginPrefix+"§9The correct answer was §c§l"+ChatQuestions.curAnswer);
+                    Bukkit.broadcastMessage(ChatQuestions.pluginPrefix+"§9and the question was §c§l"+ChatQuestions.curQuestion);
+                    curQuestion="";
+                    curAnswer="";
+                    questionUUID=null;
+                }
+            }
+        }, questionTimeout);
+    }
+
 
     public void onEnable() {
+        this.getDataFolder().mkdirs();
+        File file = new File(this.getDataFolder()+File.separator+"QuestionFilter.txt");
+        if(!file.exists()){
+            try {
+                file.createNewFile();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        try {
+            BufferedReader br = new BufferedReader(new FileReader(this.getDataFolder()+File.separator+"QuestionFilter.txt"));
+            while (br.ready()) {
+                filter.add(br.readLine());
+            }
+            br.close();
+        } catch (Exception e){
+            e.printStackTrace();
+            this.getLogger().info("Couldn't read QuestionFilter.txt");
+        }
         getServer().getPluginManager().registerEvents(this, this);
-//        BukkitScheduler scheduler = Bukkit.getServer().getScheduler();
-//        scheduler.scheduleSyncRepeatingTask(this, new Runnable() {
-//            @Override
-//            public void run() {
-//                Collection<? extends Player> players = Bukkit.getServer().getOnlinePlayers();
-//                Iterator<? extends Player> it = players.iterator();
-//                while (it.hasNext()){
-//                    Player curPlayer = it.next();
-//                    PlayerTickEvent playerTickEvent = new PlayerTickEvent(curPlayer);
-//                    getServer().getPluginManager().callEvent(playerTickEvent);
-//                }
-//            }
-//        }, 0L, 0L);
-//        chatListener = new ChatListener();
-//        commandListener = new CommandListener();
-//        toggleFlightListener = new ToggleFlightListener();
         if (this.getConfig().getInt("pingMsgCooldown")==0){
             pingCooldownLimit = 3;
             this.getLogger().info("Could not find pingmsg cooldown, setting to 3");
@@ -85,10 +158,12 @@ public class ChatQuestions extends JavaPlugin implements Listener {
             pingCooldownLimit = this.getConfig().getInt("pingMsgCooldown");
             this.getLogger().info("Setting pingmsg cooldown to "+this.getConfig().getInt("pingMsgCooldown"));
         }
+        reloadQuestionStats();
     }
 
 
     public void onDisable() {
+        saveQuestionStatsList();
     }
 //    @EventHandler(priority = EventPriority.MONITOR)
 //    public void onPlayerAttack(EntityDamageByEntityEvent event){
@@ -212,6 +287,16 @@ public class ChatQuestions extends JavaPlugin implements Listener {
             }
             else {
                 out=out+chars[i];
+            }
+        }
+        return out;
+    }
+
+    public static boolean isDirty(String in){
+        boolean out = false;
+        for (int i=0;i<filter.size();i++){
+            if (in.contains(filter.get(i))){
+                out = true;
             }
         }
         return out;

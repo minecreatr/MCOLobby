@@ -12,6 +12,13 @@ import org.bukkit.event.player.AsyncPlayerChatEvent;
  */
 public class ChatListener {
 
+    public ChatQuestions instance;
+
+
+    public ChatListener(ChatQuestions q){
+        instance=q;
+    }
+
     public void onChat(AsyncPlayerChatEvent event){
         Player player = event.getPlayer();
         //its a shame to delete good code
@@ -27,6 +34,10 @@ public class ChatListener {
             Bukkit.broadcastMessage("");
             ChatQuestions.curAnswer="";
             ChatQuestions.curQuestion="";
+            ChatQuestions.questionUUID=null;
+            ChatQuestions.curAsker="";
+            int curNum = instance.getQuestionStats().getInt(player.getName());
+            instance.getQuestionStats().set(player.getName(), curNum+1);
             event.setCancelled(true);
             for (int i=0;i<20;i++) {
                 EntityFireworks fw = (EntityFireworks) player.getWorld().spawnEntity(player.getLocation(), EntityType.FIREWORK);
