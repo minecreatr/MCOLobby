@@ -1,13 +1,22 @@
 package com.minecreatr.chatquestions.listeners;
 
 import com.minecreatr.chatquestions.ChatQuestions;
+import net.minecraft.server.v1_7_R4.NBTTagCompound;
+import net.minecraft.server.v1_7_R4.NBTTagInt;
+import net.minecraft.server.v1_7_R4.NBTTagList;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.craftbukkit.v1_7_R4.inventory.CraftItemStack;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 
+import java.lang.reflect.Field;
 import java.util.*;
 
 /**
@@ -127,7 +136,6 @@ public class CommandListener {
             return true;
         }
         else if (cmd.getName().equalsIgnoreCase("stats")){
-            //todo here
             Iterator<Map.Entry<String, Integer>> itr = sortByValue(instance.getQuestionStats().getValues(false)).entrySet().iterator();
             while (itr.hasNext()){
                 Map.Entry<String, Integer> cur = itr.next();
@@ -366,6 +374,40 @@ public class CommandListener {
             }
             return true;
         }
+        else if (cmd.getName().equalsIgnoreCase("paintgun")){
+            if (!player.hasPermission("leapjump.paint")){
+                player.sendMessage(ChatQuestions.noPermPaint);
+                return true;
+            }
+            ItemStack stack = new ItemStack(Material.DIAMOND_HOE, 1);
+            //stack.addUnsafeEnchantment(Enchantment.ARROW_INFINITE, 1);
+            ItemMeta meta = stack.getItemMeta();
+            meta.setDisplayName(ChatColor.AQUA+"Paint Gun");
+            List<String> lore = new ArrayList<String>();
+            lore.add(""+ChatColor.GREEN+ChatColor.ITALIC+"Shoots a paintball");
+            meta.setLore(lore);
+            //addGlow(stack);
+            stack.setItemMeta(meta);
+            player.getInventory().addItem(stack);
+            return true;
+        }
         return false;
     }
+
+    public static ItemStack addGlow(ItemStack item){
+        net.minecraft.server.v1_7_R4.ItemStack nmsStack = CraftItemStack.asNMSCopy(item);
+        NBTTagCompound tag = null;
+        if (!nmsStack.hasTag()) {
+            tag = new NBTTagCompound();
+            nmsStack.setTag(tag);
+        }
+        if (tag == null) tag = nmsStack.getTag();
+        NBTTagList ench = new NBTTagList();
+        ench.add(new NBTTagInt(5));
+        tag.set("ench", ench);
+        nmsStack.setTag(tag);
+        return CraftItemStack.asCraftMirror(nmsStack);
+    }
+
+
 }

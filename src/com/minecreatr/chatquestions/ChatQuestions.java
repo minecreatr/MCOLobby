@@ -3,6 +3,7 @@ package com.minecreatr.chatquestions;
 import com.minecreatr.chatquestions.listeners.ChatListener;
 import com.minecreatr.chatquestions.listeners.CommandListener;
 import com.minecreatr.chatquestions.listeners.ToggleFlightListener;
+import net.minecraft.server.v1_7_R4.Items;
 import org.bukkit.*;
 import org.bukkit.block.BlockFace;
 import org.bukkit.command.Command;
@@ -11,16 +12,23 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.craftbukkit.v1_7_R4.CraftServer;
 import org.bukkit.craftbukkit.v1_7_R4.entity.CraftPlayer;
+import org.bukkit.craftbukkit.v1_7_R4.entity.CraftSnowball;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Snowball;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.EntityDeathEvent;
+import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.event.player.*;
 import org.bukkit.inventory.meta.FireworkEffectMeta;
 import org.bukkit.inventory.meta.FireworkMeta;
+import org.bukkit.metadata.MetadataValue;
 import org.bukkit.permissions.PermissionAttachment;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitScheduler;
@@ -31,9 +39,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.lang.reflect.Array;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.UUID;
+import java.util.*;
 import java.util.logging.Level;
 
 /**
@@ -41,6 +47,7 @@ import java.util.logging.Level;
  */
 public class ChatQuestions extends JavaPlugin implements Listener {
 
+    Random random = new Random();
     public static final String section = "§";
     public static String curAnswer = "";
     public static String curQuestion = "";
@@ -53,6 +60,7 @@ public class ChatQuestions extends JavaPlugin implements Listener {
     public static String pluginPrefix = "[§cM§2C§eO§f§6C§dQ§f] ";
     public static ArrayList<UUID> blockPing = new ArrayList<UUID>();
     public static ArrayList<UUID> disableDoubleJump = new ArrayList<UUID>();
+    public static ArrayList<UUID> paintballs = new ArrayList<UUID>();
     public static ArrayList<String> filter = new ArrayList<String>();
     //public static HashMap<UUID, Boolean> isInAir = new HashMap<UUID, Boolean>();
     private ChatListener chatListener = new ChatListener(this);
@@ -68,6 +76,7 @@ public class ChatQuestions extends JavaPlugin implements Listener {
     public static String enabledD = ChatColor.GREEN + "Enabled Leap Jump!";
     public static String disabledD = ChatColor.RED + "Disabled Leap Jump!";
     public static String noPermD = "" + ChatColor.RED + ChatColor.ITALIC + "Donate to get the ability to Leap Jump!";
+    public static String noPermPaint = "" + ChatColor.RED + ChatColor.ITALIC + "Donate to get the ability to launch paint!";
     public static String doubleJumpD = "" + ChatColor.GREEN + ChatColor.UNDERLINE + "To Leap Jump hold shift and jump!";
 
     private FileConfiguration questionStats= null;
@@ -291,6 +300,53 @@ public class ChatQuestions extends JavaPlugin implements Listener {
             }
         }
         return out;
+    }
+
+    @EventHandler(priority = EventPriority.HIGH)
+    public void onInteract(PlayerInteractEvent event){
+        //event.getPlayer().sendMessage(event.getAction().toString());
+        if (event.getAction()== Action.RIGHT_CLICK_AIR && event.getPlayer().getItemInHand().getType()==Material.DIAMOND_HOE
+                && event.getPlayer().getItemInHand().getItemMeta().getLore().contains(""+ChatColor.GREEN+ChatColor.ITALIC+"Shoots a paintball") &&
+                event.getPlayer().hasPermission("leapjump.paint")){
+            Player player = event.getPlayer();
+            Snowball snowball = player.throwSnowball();
+            paintballs.add(snowball.getUniqueId());
+            player.playSound(snowball.getLocation(), Sound.GHAST_FIREBALL,1 ,1);
+        }
+    }
+
+    public void renderPaint(Location location, int radius, byte color){
+        Iterator<? extends Player> players = Bukkit.getServer().getOnlinePlayers().iterator();
+
+        double radiusSquared = radius*radius;
+
+        while (players.hasNext()) {
+            Player player = players.next();
+            if(player.getLocation().distanceSquared(location) <= radiusSquared){
+                if (player.getWorld().getBlockAt(location).getType()!=Material.AIR) {
+                    player.sendBlockChange(location, Material.WOOL, color);
+                }
+            }
+
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onProjectileHit(ProjectileHitEvent event){
+        if (paintballs.contains(event.getEntity().getUniqueId())){
+            paintballs.remove(event.getEntity().getUniqueId());
+            //event.getEntity().getWorld().getBlockAt(event.getEntity().getLocation()).setType(Material.WOOL);
+            for (int i=-1;i<1;i++){
+                for (int j=-1;j<1;j++){
+                    for (int h=-1;h<1;h++){
+                        Location loc = event.getEntity().getLocation();
+                        renderPaint(new Location(event.getEntity().getWorld(), loc.getBlockX()+i ,loc.getBlockY()+j-1 ,loc.getBlockZ()+h), 100, (byte)random.nextInt(15));
+                        //event.getEntity().getWorld().getBlockAt(i ,j ,h).setType(Material.WOOL);
+                        //event.getEntity().getWorld().getBlockAt(loc.getBlockX()+i ,loc.getBlockY()+j-1 ,loc.getBlockZ()+h).setTypeIdAndData(Material.WOOL.getId(), (byte)6, true);
+                    }
+                }
+            }
+        }
     }
 
     public static boolean isDirty(String in){
