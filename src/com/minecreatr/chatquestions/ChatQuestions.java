@@ -3,6 +3,7 @@ package com.minecreatr.chatquestions;
 import com.minecreatr.chatquestions.listeners.ChatListener;
 import com.minecreatr.chatquestions.listeners.CommandListener;
 import com.minecreatr.chatquestions.listeners.ToggleFlightListener;
+import net.minecraft.server.v1_7_R4.Blocks;
 import net.minecraft.server.v1_7_R4.Items;
 import org.bukkit.*;
 import org.bukkit.block.BlockFace;
@@ -53,6 +54,7 @@ public class ChatQuestions extends JavaPlugin implements Listener {
     public static String curQuestion = "";
     public static String curAsker = "";
     public static ArrayList<String> curHints = new ArrayList<String>();
+    public static HashMap<UUID, DisguisedBlock> coloredBlocks = new HashMap<UUID, DisguisedBlock>();
     public static UUID questionUUID;
     public static int pingCooldownLimit;
     public final static long questionTimeout = 20*60*3;
@@ -202,7 +204,7 @@ public class ChatQuestions extends JavaPlugin implements Listener {
     }
 
 
-    @EventHandler(priority = EventPriority.HIGH)
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onPlayerMove(PlayerMoveEvent e){
         Player p = e.getPlayer();
         if(dJ.contains(p.getUniqueId())){
@@ -226,6 +228,10 @@ public class ChatQuestions extends JavaPlugin implements Listener {
                     }
                 }
             }
+        }
+        Iterator<DisguisedBlock> blocks = coloredBlocks.values().iterator();
+        while (blocks.hasNext()){
+            blocks.next().render(e.getPlayer());
         }
     }
 
@@ -313,22 +319,16 @@ public class ChatQuestions extends JavaPlugin implements Listener {
             paintballs.add(snowball.getUniqueId());
             player.playSound(snowball.getLocation(), Sound.GHAST_FIREBALL,1 ,1);
         }
+        Iterator<DisguisedBlock> blocks = coloredBlocks.values().iterator();
+        while (blocks.hasNext()){
+            blocks.next().render(event.getPlayer());
+        }
+
     }
 
-    public void renderPaint(Location location, int radius, byte color){
-        Iterator<? extends Player> players = Bukkit.getServer().getOnlinePlayers().iterator();
-
-        double radiusSquared = radius*radius;
-
-        while (players.hasNext()) {
-            Player player = players.next();
-            if(player.getLocation().distanceSquared(location) <= radiusSquared){
-                if (player.getWorld().getBlockAt(location).getType()!=Material.AIR) {
-                    player.sendBlockChange(location, Material.WOOL, color);
-                }
-            }
-
-        }
+    public void addPaint(Location location, byte color){
+        DisguisedBlock block = new DisguisedBlock(Material.WOOL, color , location);
+        coloredBlocks.put(block.getID(), block);
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
@@ -340,7 +340,9 @@ public class ChatQuestions extends JavaPlugin implements Listener {
                 for (int j=-1;j<1;j++){
                     for (int h=-1;h<1;h++){
                         Location loc = event.getEntity().getLocation();
-                        renderPaint(new Location(event.getEntity().getWorld(), loc.getBlockX()+i ,loc.getBlockY()+j-1 ,loc.getBlockZ()+h), 100, (byte)random.nextInt(15));
+                        if (event.getEntity().getWorld().getBlockAt(loc.getBlockX()+i, loc.getBlockY()+j-1, loc.getBlockZ()+h).getType()!=Material.AIR) {
+                            addPaint(new Location(event.getEntity().getWorld(), loc.getBlockX() + i, loc.getBlockY() + j - 1, loc.getBlockZ() + h), (byte) random.nextInt(15));
+                        }
                         //event.getEntity().getWorld().getBlockAt(i ,j ,h).setType(Material.WOOL);
                         //event.getEntity().getWorld().getBlockAt(loc.getBlockX()+i ,loc.getBlockY()+j-1 ,loc.getBlockZ()+h).setTypeIdAndData(Material.WOOL.getId(), (byte)6, true);
                     }

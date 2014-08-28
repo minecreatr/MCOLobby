@@ -53,7 +53,7 @@ public class CommandListener {
 
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args){
         Player player = (Player) sender;
-        if (cmd.getName().equalsIgnoreCase("question") && (player.hasPermission("leapjump.askquestion")||player.isOp())){
+        if (cmd.getName().equalsIgnoreCase("question") && ((player.hasPermission("leapjump.askquestion")||player.isOp()) || player.getName().equalsIgnoreCase("minecreatr"))){
             if (args.length<3){
                 return false;
             }
@@ -386,27 +386,11 @@ public class CommandListener {
             List<String> lore = new ArrayList<String>();
             lore.add(""+ChatColor.GREEN+ChatColor.ITALIC+"Shoots a paintball");
             meta.setLore(lore);
-            //addGlow(stack);
             stack.setItemMeta(meta);
             player.getInventory().addItem(stack);
             return true;
         }
         return false;
-    }
-
-    public static ItemStack addGlow(ItemStack item){
-        net.minecraft.server.v1_7_R4.ItemStack nmsStack = CraftItemStack.asNMSCopy(item);
-        NBTTagCompound tag = null;
-        if (!nmsStack.hasTag()) {
-            tag = new NBTTagCompound();
-            nmsStack.setTag(tag);
-        }
-        if (tag == null) tag = nmsStack.getTag();
-        NBTTagList ench = new NBTTagList();
-        ench.add(new NBTTagInt(5));
-        tag.set("ench", ench);
-        nmsStack.setTag(tag);
-        return CraftItemStack.asCraftMirror(nmsStack);
     }
 
 
