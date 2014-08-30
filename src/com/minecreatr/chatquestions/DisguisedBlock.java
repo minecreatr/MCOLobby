@@ -43,13 +43,11 @@ public class DisguisedBlock {
     }
 
     public void render(Player player){
-        if ((System.currentTimeMillis()-timeCreated)>(1000*3)){
-            ChatQuestions.coloredBlocks.remove(getID());
-            player.sendBlockChange(location, originalType, originalMeta);
-        }
-        else {
-            player.sendBlockChange(location, type, meta);
-        }
+        player.sendBlockChange(location, type, meta);
+    }
+
+    public void renderOld(Player player){
+        player.sendBlockChange(location, originalType, originalMeta);
     }
 
     public UUID getID(){
@@ -71,5 +69,9 @@ public class DisguisedBlock {
         double x = (double)id.getMostSignificantBits()/y;
         double z = (double)id.getLeastSignificantBits()/y;
         return new Location(world, x, y, z);
+    }
+
+    public long getTimeCreated(){
+        return this.timeCreated;
     }
 }

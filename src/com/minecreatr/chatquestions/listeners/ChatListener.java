@@ -1,7 +1,7 @@
 package com.minecreatr.chatquestions.listeners;
 
 import com.minecreatr.chatquestions.ChatQuestions;
-import net.minecraft.server.v1_7_R4.EntityFireworks;
+import net.minecraft.server.v1_7_R2.EntityFireworks;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;

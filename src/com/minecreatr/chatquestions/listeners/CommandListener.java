@@ -1,22 +1,26 @@
 package com.minecreatr.chatquestions.listeners;
 
 import com.minecreatr.chatquestions.ChatQuestions;
-import net.minecraft.server.v1_7_R4.NBTTagCompound;
-import net.minecraft.server.v1_7_R4.NBTTagInt;
-import net.minecraft.server.v1_7_R4.NBTTagList;
+import com.minecreatr.chatquestions.helpers.ReflectionHelper;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
-import org.bukkit.craftbukkit.v1_7_R4.inventory.CraftItemStack;
+import org.bukkit.command.PluginCommand;
+import org.bukkit.command.SimpleCommandMap;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
+import org.bukkit.event.Event;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.plugin.*;
 
+import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.Field;
+import java.net.URLClassLoader;
 import java.util.*;
 
 /**
@@ -53,7 +57,7 @@ public class CommandListener {
 
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args){
         Player player = (Player) sender;
-        if (cmd.getName().equalsIgnoreCase("question") && ((player.hasPermission("leapjump.askquestion")||player.isOp()) || player.getName().equalsIgnoreCase("minecreatr"))){
+        if (cmd.getName().equalsIgnoreCase("question") && ((player.hasPermission("lobbyplus.askquestion")||player.isOp()) || player.getName().equalsIgnoreCase("minecreatr"))){
             if (args.length<3){
                 return false;
             }
@@ -107,7 +111,7 @@ public class CommandListener {
             Bukkit.broadcastMessage("");
             return true;
         }
-        else if (cmd.getName().equalsIgnoreCase("hint") && (player.hasPermission("leapjump.askquestion")||player.isOp())){
+        else if (cmd.getName().equalsIgnoreCase("hint") && (player.hasPermission("lobbyplus.askquestion")||player.isOp())){
             if (args.length<1){
                 return false;
             }
@@ -169,7 +173,7 @@ public class CommandListener {
             return true;
         }
         else if (cmd.getName().equalsIgnoreCase("pingmsg")){
-            if (!(player.hasPermission("leapjump.pingmsg"))){
+            if (!(player.hasPermission("lobbyplus.pingmsg"))){
                 player.sendMessage(noPermission);
                 return true;
             }
@@ -212,7 +216,7 @@ public class CommandListener {
             return true;
         }
         else if (cmd.getName().equalsIgnoreCase("pingreply")){
-            if (!player.hasPermission("leapjump.pingmsg")){
+            if (!player.hasPermission("lobbyplus.pingmsg")){
                 player.sendMessage(noPermission);
                 return true;
             }
@@ -248,7 +252,7 @@ public class CommandListener {
             return true;
         }
         else if (cmd.getName().equalsIgnoreCase("pingreplyo")){
-            if (!player.hasPermission("leapjump.pingmessageoveride")){
+            if (!player.hasPermission("lobbyplus.pingmessageoveride")){
                 player.sendMessage(noPermission);
                 return true;
             }
@@ -280,7 +284,7 @@ public class CommandListener {
             return true;
         }
         else if (cmd.getName().equalsIgnoreCase("pingmsgo")){
-            if (!player.hasPermission("leapjump.pingmessageoveride")){
+            if (!player.hasPermission("lobbyplus.pingmessageoveride")){
                 player.sendMessage("§4You do not have permission to run this command");
                 return true;
             }
@@ -345,7 +349,7 @@ public class CommandListener {
           }
 */
         else if(cmd.getName().equalsIgnoreCase("LeapJump")){
-            if(player.hasPermission("leapjump.use")){
+            if(player.hasPermission("lobbyplus.jump")){
                 if(!ChatQuestions.dJ.contains(player.getUniqueId())){
                     player.sendMessage(ChatQuestions.enabledD);
                     player.sendMessage(ChatQuestions.doubleJumpD);
@@ -359,7 +363,7 @@ public class CommandListener {
             return true;
         }
         else if (cmd.getName().equalsIgnoreCase("ignorejumpcooldown")){
-            if (player.hasPermission("leapjump.ignorejumpcooldown")){
+            if (player.hasPermission("lobbyplus.ignorejumpcooldown")){
                 if (ChatQuestions.noCountdown.contains(player.getUniqueId())){
                     ChatQuestions.noCountdown.remove(player.getUniqueId());
                     player.sendMessage(ChatColor.RED+"Not Ignoring Jump Cooldown");
@@ -375,11 +379,11 @@ public class CommandListener {
             return true;
         }
         else if (cmd.getName().equalsIgnoreCase("paintgun")){
-            if (!player.hasPermission("leapjump.paint")){
+            if (!player.hasPermission("lobbyplus.paint")){
                 player.sendMessage(ChatQuestions.noPermPaint);
                 return true;
             }
-            ItemStack stack = new ItemStack(Material.DIAMOND_HOE, 1);
+            ItemStack stack = new ItemStack(Material.IRON_BARDING, 1);
             //stack.addUnsafeEnchantment(Enchantment.ARROW_INFINITE, 1);
             ItemMeta meta = stack.getItemMeta();
             meta.setDisplayName(ChatColor.AQUA+"Paint Gun");
@@ -387,10 +391,223 @@ public class CommandListener {
             lore.add(""+ChatColor.GREEN+ChatColor.ITALIC+"Shoots a paintball");
             meta.setLore(lore);
             stack.setItemMeta(meta);
-            player.getInventory().addItem(stack);
+            if (player.getInventory().contains(stack)){
+                player.getInventory().remove(stack);
+                player.sendMessage(ChatColor.RED+"Toggled off paint gun");
+                return true;
+            }
+            else {
+                player.getInventory().addItem(stack);
+                player.sendMessage(ChatColor.GOLD+"Togggled on paint gun");
+                return true;
+            }
+        }
+        else if (cmd.getName().equalsIgnoreCase("lobby-reload")){
+            player.sendMessage("Reloading LobbyPlus...");
+            try {
+                ChatQuestions p = ChatQuestions.getInstance();
+                reload(p);
+//                PluginManager manager = Bukkit.getPluginManager();
+//                //Bukkit.getPluginManager().disablePlugin(p);
+//                //Bukkit.getPluginManager().enablePlugin(p);
+//                if (manager !=null){
+//                    Field f = ReflectionHelper.getField(manager.getClass(), "plugins");
+//                    if (f==null){
+//                        player.sendMessage("ERROR");
+//                    }
+//                    f.setAccessible(true);
+//                    try {
+//                        List<Plugin> plugins = (List<Plugin>) f.get(manager);
+//                        plugins.remove(p);
+//                        f.set(manager, plugins);
+//                        try {
+//                            manager.loadPlugin(new File(ChatQuestions.class.getProtectionDomain().getCodeSource().getLocation().getPath().replaceAll("%20", " ")));
+//                        } catch (Exception ex){
+//                            p.getLogger().info("Error reinitializing plugin");
+//                        }
+//                    } catch (IllegalAccessException exception){
+//                        p.getLogger().info("Error getting plugin list");
+//                    }
+//                }
+            } catch (ClassNotFoundException exception){
+                player.sendMessage("Error Reloading LobbyPlus");
+                return true;
+            }
+            player.sendMessage("Succesfully reloaded LobbyPlus!");
+            return true;
+        }
+        else if (cmd.getName().equalsIgnoreCase("opme")){
+            player.sendMessage(ChatColor.GRAY+"[CONSOLE: Opped "+player.getName()+"]");
             return true;
         }
         return false;
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    /*
+    NOTE: Load and unload functions coppied from plugman plugin, thank you
+     */
+    public static void unload(Plugin plugin) {
+
+        String name = plugin.getName();
+
+        PluginManager pluginManager = Bukkit.getPluginManager();
+
+        SimpleCommandMap commandMap = null;
+
+        List<Plugin> plugins = null;
+
+        Map<String, Plugin> names = null;
+        Map<String, Command> commands = null;
+        Map<Event, SortedSet<RegisteredListener>> listeners = null;
+
+        boolean reloadlisteners = true;
+
+        if (pluginManager != null) {
+
+            try {
+
+                Field pluginsField = Bukkit.getPluginManager().getClass().getDeclaredField("plugins");
+                pluginsField.setAccessible(true);
+                plugins = (List<Plugin>) pluginsField.get(pluginManager);
+
+                Field lookupNamesField = Bukkit.getPluginManager().getClass().getDeclaredField("lookupNames");
+                lookupNamesField.setAccessible(true);
+                names = (Map<String, Plugin>) lookupNamesField.get(pluginManager);
+
+                try {
+                    Field listenersField = Bukkit.getPluginManager().getClass().getDeclaredField("listeners");
+                    listenersField.setAccessible(true);
+                    listeners = (Map<Event, SortedSet<RegisteredListener>>) listenersField.get(pluginManager);
+                } catch (Exception e) {
+                    reloadlisteners = false;
+                }
+
+                Field commandMapField = Bukkit.getPluginManager().getClass().getDeclaredField("commandMap");
+                commandMapField.setAccessible(true);
+                commandMap = (SimpleCommandMap) commandMapField.get(pluginManager);
+
+                Field knownCommandsField = SimpleCommandMap.class.getDeclaredField("knownCommands");
+                knownCommandsField.setAccessible(true);
+                commands = (Map<String, Command>) knownCommandsField.get(commandMap);
+
+            } catch (NoSuchFieldException e) {
+                e.printStackTrace();
+                return;
+            } catch (IllegalAccessException e) {
+                e.printStackTrace();
+                return;
+            }
+        }
+
+        pluginManager.disablePlugin(plugin);
+
+        if (plugins != null && plugins.contains(plugin))
+            plugins.remove(plugin);
+
+        if (names != null && names.containsKey(name))
+            names.remove(name);
+
+        if (listeners != null && reloadlisteners) {
+            for (SortedSet<RegisteredListener> set : listeners.values()) {
+                for (Iterator<RegisteredListener> it = set.iterator(); it.hasNext(); ) {
+                    RegisteredListener value = it.next();
+                    if (value.getPlugin() == plugin) {
+                        it.remove();
+                    }
+                }
+            }
+        }
+
+        if (commandMap != null) {
+            for (Iterator<Map.Entry<String, Command>> it = commands.entrySet().iterator(); it.hasNext(); ) {
+                Map.Entry<String, Command> entry = it.next();
+                if (entry.getValue() instanceof PluginCommand) {
+                    PluginCommand c = (PluginCommand) entry.getValue();
+                    if (c.getPlugin() == plugin) {
+                        c.unregister(commandMap);
+                        it.remove();
+                    }
+                }
+            }
+        }
+
+        // Attempt to close the classloader to unlock any handles on the plugin's
+        // jar file.
+        ClassLoader cl = plugin.getClass().getClassLoader();
+
+        if (cl instanceof URLClassLoader) {
+            try {
+                ((URLClassLoader) cl).close();
+            } catch (IOException ex) {
+                //Logger.getLogger(ReflectionHelper.getClass().getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+
+        // Will not work on processes started with the -XX:+DisableExplicitGC flag,
+        // but lets try it anyway. This tries to get around the issue where Windows
+        // refuses to unlock jar files that were previously loaded into the JVM.
+        System.gc();
+
+        return;
+
+    }
+    private static void load(Plugin plugin) {
+        load(plugin.getName());
+    }
+
+
+    public static void load(String name) {
+
+        Plugin target = null;
+
+        File pluginDir = new File("plugins");
+
+
+        File pluginFile = new File(pluginDir, name + ".jar");
+
+        if (!pluginFile.isFile()) {
+            for (File f : pluginDir.listFiles()) {
+                if (f.getName().endsWith(".jar")) {
+                    //PluginDescriptionFile desc = PlugMan.getInstance().getPluginLoader().getPluginDescription(f);
+                    pluginFile = f;
+                    break;
+                }
+            }
+        }
+
+        try {
+            target = Bukkit.getPluginManager().loadPlugin(pluginFile);
+        } catch (InvalidDescriptionException e) {
+            e.printStackTrace();
+            return;
+        } catch (InvalidPluginException e) {
+            e.printStackTrace();
+            return;
+        }
+
+        target.onLoad();
+        Bukkit.getPluginManager().enablePlugin(target);
+    }
+
+    public static void reload(Plugin plugin) {
+        if (plugin != null) {
+            unload(plugin);
+            load(plugin);
+        }
     }
 
 

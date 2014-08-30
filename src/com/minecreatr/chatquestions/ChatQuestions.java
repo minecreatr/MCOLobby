@@ -3,17 +3,16 @@ package com.minecreatr.chatquestions;
 import com.minecreatr.chatquestions.listeners.ChatListener;
 import com.minecreatr.chatquestions.listeners.CommandListener;
 import com.minecreatr.chatquestions.listeners.ToggleFlightListener;
-import net.minecraft.server.v1_7_R4.Blocks;
-import net.minecraft.server.v1_7_R4.Items;
+import net.minecraft.server.v1_7_R2.BlockContainer;
+import net.minecraft.server.v1_7_R2.Container;
+import net.minecraft.server.v1_7_R2.IContainer;
+import net.minecraft.server.v1_7_R2.TileEntityChest;
 import org.bukkit.*;
 import org.bukkit.block.BlockFace;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.craftbukkit.v1_7_R4.CraftServer;
-import org.bukkit.craftbukkit.v1_7_R4.entity.CraftPlayer;
-import org.bukkit.craftbukkit.v1_7_R4.entity.CraftSnowball;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
@@ -55,6 +54,8 @@ public class ChatQuestions extends JavaPlugin implements Listener {
     public static String curAsker = "";
     public static ArrayList<String> curHints = new ArrayList<String>();
     public static HashMap<UUID, DisguisedBlock> coloredBlocks = new HashMap<UUID, DisguisedBlock>();
+    public boolean haltRender = false;
+    private static int paintTimeout;
     public static UUID questionUUID;
     public static int pingCooldownLimit;
     public final static long questionTimeout = 20*60*3;
@@ -142,6 +143,24 @@ public class ChatQuestions extends JavaPlugin implements Listener {
 
 
     public void onEnable() {
+        loadStuff();
+        reloadQuestionStats();
+        BukkitScheduler s = Bukkit.getScheduler();
+        Runnable update = new Runnable() {
+            @Override
+            public void run() {
+                Player[] players = Bukkit.getOnlinePlayers();
+                for (int i=0;i<players.length;i++){
+                    PlayerTickEvent event = new PlayerTickEvent(players[i]);
+                    getServer().getPluginManager().callEvent(event);
+                }
+            }
+        };
+        s.scheduleSyncRepeatingTask(this, update, 0l, 1l);
+        saveConfig();;
+    }
+
+    public void loadStuff(){
         this.getDataFolder().mkdirs();
         File file = new File(this.getDataFolder()+File.separator+"QuestionFilter.txt");
         if(!file.exists()){
@@ -161,16 +180,26 @@ public class ChatQuestions extends JavaPlugin implements Listener {
             e.printStackTrace();
             this.getLogger().info("Couldn't read QuestionFilter.txt");
         }
+        reloadConfig();
         getServer().getPluginManager().registerEvents(this, this);
         if (this.getConfig().getInt("pingMsgCooldown")==0){
             pingCooldownLimit = 3;
             this.getLogger().info("Could not find pingmsg cooldown, setting to 3");
+            this.getConfig().set("pingMsgCooldown", 3);
         }
         else {
             pingCooldownLimit = this.getConfig().getInt("pingMsgCooldown");
             this.getLogger().info("Setting pingmsg cooldown to "+this.getConfig().getInt("pingMsgCooldown"));
         }
-        reloadQuestionStats();
+        if (this.getConfig().getInt("paintTimeout")==0){
+            paintTimeout = 3;
+            this.getLogger().info("Could not find paint ball timeout time, setting to 3");
+            this.getConfig().set("paintTimeout", 3);
+        }
+        else {
+            paintTimeout = this.getConfig().getInt("paintTimeout");
+            this.getLogger().info("Setting the paint timeout to "+this.getConfig().getInt("paintTimeout"));
+        }
     }
 
 
@@ -229,10 +258,6 @@ public class ChatQuestions extends JavaPlugin implements Listener {
                 }
             }
         }
-        Iterator<DisguisedBlock> blocks = coloredBlocks.values().iterator();
-        while (blocks.hasNext()){
-            blocks.next().render(e.getPlayer());
-        }
     }
 
     public void launch(Player player){
@@ -253,6 +278,33 @@ public class ChatQuestions extends JavaPlugin implements Listener {
             if(dJ.contains(p.getUniqueId())){e.setCancelled(true);}
         }
     }
+
+//    public void resetBlock(final Location location, final Material block, final byte meta){
+//        final BukkitScheduler s = Bukkit.getScheduler();
+//        Runnable reset = new Runnable() {
+//            @Override
+//            public void run() {
+//                if (location.getBlock().getType()==Material.WOOL) {
+//                    location.getBlock().setType(block);
+//                    location.getBlock().setData(meta);
+//                }
+//            }
+//        };
+//        s.scheduleSyncDelayedTask(this, reset, 20*3);
+//    }
+//
+//    public void resetMeta(final Location location, final byte meta){
+//        final BukkitScheduler s = Bukkit.getScheduler();
+//        Runnable reset = new Runnable() {
+//            @Override
+//            public void run() {
+//                if (location.getBlock().getType()==Material.WOOL) {
+//                    location.getBlock().setData(meta);
+//                }
+//            }
+//        };
+//        s.scheduleSyncDelayedTask(this, reset, 20*3);
+//    }
 
     public void timers(final Player p){
         final Float originalEXP = p.getExp();
@@ -311,24 +363,29 @@ public class ChatQuestions extends JavaPlugin implements Listener {
     @EventHandler(priority = EventPriority.HIGH)
     public void onInteract(PlayerInteractEvent event){
         //event.getPlayer().sendMessage(event.getAction().toString());
-        if (event.getAction()== Action.RIGHT_CLICK_AIR && event.getPlayer().getItemInHand().getType()==Material.DIAMOND_HOE
+        if (event.getAction()== Action.RIGHT_CLICK_AIR && event.getPlayer().getItemInHand().getType()==Material.IRON_BARDING
                 && event.getPlayer().getItemInHand().getItemMeta().getLore().contains(""+ChatColor.GREEN+ChatColor.ITALIC+"Shoots a paintball") &&
                 event.getPlayer().hasPermission("leapjump.paint")){
             Player player = event.getPlayer();
             Snowball snowball = player.throwSnowball();
             paintballs.add(snowball.getUniqueId());
-            player.playSound(snowball.getLocation(), Sound.GHAST_FIREBALL,1 ,1);
-        }
-        Iterator<DisguisedBlock> blocks = coloredBlocks.values().iterator();
-        while (blocks.hasNext()){
-            blocks.next().render(event.getPlayer());
+            player.playSound(snowball.getLocation(), Sound.CHICKEN_EGG_POP,1 ,1);
         }
 
     }
 
-    public void addPaint(Location location, byte color){
-        DisguisedBlock block = new DisguisedBlock(Material.WOOL, color , location);
-        coloredBlocks.put(block.getID(), block);
+    public void addPaint(Location location, byte color, int times){
+        if (location.getBlock().getType().isSolid()) {
+            haltRender = true;
+            DisguisedBlock block = new DisguisedBlock(Material.WOOL, color, location);
+            coloredBlocks.put(block.getID(), block);
+            haltRender = false;
+        }
+        else if (!(times>1)){
+            location.setY(location.getY()-1);
+            times++;
+            addPaint(location, color, times);
+        }
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
@@ -336,18 +393,8 @@ public class ChatQuestions extends JavaPlugin implements Listener {
         if (paintballs.contains(event.getEntity().getUniqueId())){
             paintballs.remove(event.getEntity().getUniqueId());
             //event.getEntity().getWorld().getBlockAt(event.getEntity().getLocation()).setType(Material.WOOL);
-            for (int i=-1;i<1;i++){
-                for (int j=-1;j<1;j++){
-                    for (int h=-1;h<1;h++){
-                        Location loc = event.getEntity().getLocation();
-                        if (event.getEntity().getWorld().getBlockAt(loc.getBlockX()+i, loc.getBlockY()+j-1, loc.getBlockZ()+h).getType()!=Material.AIR) {
-                            addPaint(new Location(event.getEntity().getWorld(), loc.getBlockX() + i, loc.getBlockY() + j - 1, loc.getBlockZ() + h), (byte) random.nextInt(15));
-                        }
-                        //event.getEntity().getWorld().getBlockAt(i ,j ,h).setType(Material.WOOL);
-                        //event.getEntity().getWorld().getBlockAt(loc.getBlockX()+i ,loc.getBlockY()+j-1 ,loc.getBlockZ()+h).setTypeIdAndData(Material.WOOL.getId(), (byte)6, true);
-                    }
-                }
-            }
+            Location loc = event.getEntity().getLocation();
+            addPaint(new Location(event.getEntity().getWorld(), loc.getBlockX(), loc.getBlockY() - 1, loc.getBlockZ()), (byte) random.nextInt(15), 0);
         }
     }
 
@@ -359,6 +406,34 @@ public class ChatQuestions extends JavaPlugin implements Listener {
             }
         }
         return out;
+    }
+
+    @EventHandler
+    public void onPlayerTick(PlayerTickEvent event){
+        try {
+            Iterator<DisguisedBlock> blocks = coloredBlocks.values().iterator();
+            while (blocks.hasNext() && !haltRender) {
+                DisguisedBlock block = blocks.next();
+                if ((System.currentTimeMillis() - block.getTimeCreated()) > (1000 * paintTimeout)) {
+                    block.renderOld(event.getPlayer());
+                    coloredBlocks.remove(block.getID());
+                } else {
+                    block.render(event.getPlayer());
+                }
+            }
+        } catch(ConcurrentModificationException exception){
+            //we dont care so do nothing
+        }
+    }
+
+    public static ChatQuestions getInstance() throws ClassNotFoundException{
+        if (Bukkit.getPluginManager().getPlugin("LobbyPlus") instanceof ChatQuestions){
+            ChatQuestions instance = (ChatQuestions)Bukkit.getPluginManager().getPlugin("LobbyPlus");
+            return instance;
+        }
+        else {
+            throw new ClassNotFoundException("I'M SPECIAL!");
+        }
     }
 
 //    @EventHandler(priority = EventPriority.HIGHEST)
@@ -377,17 +452,5 @@ public class ChatQuestions extends JavaPlugin implements Listener {
 //    }
 
 
-//    @EventHandler
-//    public void onPlayerTick(PlayerTickEvent event){
-//        if (event.getPlayer().getLocation().getBlock().getRelative(BlockFace.DOWN).getType().isSolid()){
-//            isInAir.put(event.getPlayer().getUniqueId(), false);
-//            if (disableDoubleJump.get(event.getPlayer().getUniqueId())==null){
-//                disableDoubleJump.put(event.getPlayer().getUniqueId(), true);
-//            }
-//            if (event.getPlayer().getGameMode()!=GameMode.CREATIVE && !disableDoubleJump.get(event.getPlayer().getUniqueId())) {
-//                event.getPlayer().setAllowFlight(true);
-//            }
-//        }
-//    }
 //}
 }
