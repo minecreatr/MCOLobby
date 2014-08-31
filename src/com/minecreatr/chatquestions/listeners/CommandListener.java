@@ -1,7 +1,6 @@
 package com.minecreatr.chatquestions.listeners;
 
 import com.minecreatr.chatquestions.ChatQuestions;
-import com.minecreatr.chatquestions.helpers.ReflectionHelper;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -57,7 +56,7 @@ public class CommandListener {
 
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args){
         Player player = (Player) sender;
-        if (cmd.getName().equalsIgnoreCase("question") && ((player.hasPermission("lobbyplus.askquestion")||player.isOp()) || player.getName().equalsIgnoreCase("minecreatr"))){
+        if (cmd.getName().equalsIgnoreCase("question") && (player.hasPermission("lobbyplus.askquestion")||player.isOp())){
             if (args.length<3){
                 return false;
             }
@@ -87,7 +86,7 @@ public class CommandListener {
                 player.sendMessage(ChatColor.RED+"Please provide a valid answer");
                 return true;
             }
-            if (ChatQuestions.isDirty(answer)||ChatQuestions.isDirty(question)){
+            if (instance.isDirty(answer)||instance.isDirty(question)){
                 player.sendMessage(ChatColor.AQUA+"You cannot ask a question that contains that word!");
                 return true;
             }
@@ -99,15 +98,15 @@ public class CommandListener {
                 player.sendMessage(ChatColor.RED+"Please provide a valid question");
                 return true;
             }
-            ChatQuestions.curHints.clear();
-            ChatQuestions.curAnswer=answer.substring(1);
-            ChatQuestions.curQuestion=question.substring(1);
-            ChatQuestions.questionUUID = new UUID(ChatQuestions.getValue(answer.substring(1)), ChatQuestions.getValue(question.substring(1)));
-            ChatQuestions.curAsker=player.getName();
-            instance.expire(ChatQuestions.questionUUID);
+            instance.curHints.clear();
+            instance.curAnswer=answer.substring(1);
+            instance.curQuestion=question.substring(1);
+            instance.questionUUID = new UUID(instance.getValue(answer.substring(1)), instance.getValue(question.substring(1)));
+            instance.curAsker=player.getName();
+            instance.expire(instance.questionUUID);
             Bukkit.broadcastMessage("");
-            Bukkit.broadcastMessage(ChatQuestions.pluginPrefix + "§a§l" + ChatQuestions.curQuestion);
-            Bukkit.broadcastMessage(ChatQuestions.pluginPrefix+"§5Asked by §f"+player.getDisplayName());
+            Bukkit.broadcastMessage(instance.pluginPrefix + "§a§l" + instance.curQuestion);
+            Bukkit.broadcastMessage(instance.pluginPrefix+"§5Asked by §f"+player.getDisplayName());
             Bukkit.broadcastMessage("");
             return true;
         }
@@ -115,11 +114,11 @@ public class CommandListener {
             if (args.length<1){
                 return false;
             }
-            if (ChatQuestions.curAsker==""){
+            if (instance.curAsker==""){
                 player.sendMessage(ChatColor.RED+"There is no currently active question!");
                 return true;
             }
-            if (!player.getName().equals(ChatQuestions.curAsker)){
+            if (!player.getName().equals(instance.curAsker)){
                 player.sendMessage(ChatColor.RED+"You are not the player who asked this question!");
                 return true;
             }
@@ -127,8 +126,8 @@ public class CommandListener {
             for (int i=0;i<args.length;i++){
                 out=out+args[i]+" ";
             }
-            Bukkit.broadcastMessage(ChatQuestions.pluginPrefix+ChatColor.BLUE+ChatColor.BOLD+"HINT: "+ChatColor.RESET+out);
-            ChatQuestions.curHints.add(out);
+            Bukkit.broadcastMessage(instance.pluginPrefix+ChatColor.BLUE+ChatColor.BOLD+"HINT: "+ChatColor.RESET+out);
+            instance.curHints.add(out);
             return true;
         }
         else if (cmd.getName().equalsIgnoreCase("stat")){
@@ -136,22 +135,32 @@ public class CommandListener {
                 return false;
             }
             int answers = instance.getQuestionStats().getInt(args[0]);
-            player.sendMessage(ChatQuestions.pluginPrefix+"The player "+args[0]+" has answered "+answers+" questions");
+            player.sendMessage(instance.pluginPrefix+"The player "+args[0]+" has answered "+answers+" questions");
             return true;
         }
         else if (cmd.getName().equalsIgnoreCase("stats")){
-            Iterator<Map.Entry<String, Integer>> itr = sortByValue(instance.getQuestionStats().getValues(false)).entrySet().iterator();
-            while (itr.hasNext()){
-                Map.Entry<String, Integer> cur = itr.next();
-                player.sendMessage(ChatQuestions.pluginPrefix+cur.getKey()+": "+cur.getValue());
+            Set<Map.Entry<String, Integer>> en = (Set<Map.Entry<String, Integer>>)(sortByValue(instance.getQuestionStats().getValues(false)).entrySet());
+            ArrayList<Map.Entry<String, Integer>> temp = new ArrayList(en);
+            Collections.reverse(temp);
+            Iterator<Map.Entry<String, Integer>> itr = temp.iterator();
+            int amount = 0;
+            while(itr.hasNext()){
+                if (amount<=9) {
+                    Map.Entry<String, Integer> cur = itr.next();
+                    player.sendMessage(instance.pluginPrefix + "# "+(amount+1)+": "+cur.getKey() + ": " + cur.getValue());
+                    amount++;
+                }
+                else {
+                    break;
+                }
             }
             return true;
         }
         else if (cmd.getName().equalsIgnoreCase("curQuestion")||cmd.getName().equalsIgnoreCase("currentquestion")){
-            if (ChatQuestions.curQuestion!=""){
-                player.sendMessage(ChatQuestions.pluginPrefix+"§9"+ ChatQuestions.curQuestion);
-                for (int i=0;i<ChatQuestions.curHints.size();i++){
-                    player.sendMessage(ChatQuestions.pluginPrefix+ChatColor.BLUE+ChatColor.BOLD+"HINT: "+ChatColor.RESET+ChatQuestions.curHints.get(i));
+            if (instance.curQuestion!=""){
+                player.sendMessage(instance.pluginPrefix+"§9"+ instance.curQuestion);
+                for (int i=0;i<instance.curHints.size();i++){
+                    player.sendMessage(instance.pluginPrefix+ChatColor.BLUE+ChatColor.BOLD+"HINT: "+ChatColor.RESET+instance.curHints.get(i));
                 }
             }
             else {
@@ -161,8 +170,8 @@ public class CommandListener {
         }
         else if (cmd.getName().equalsIgnoreCase("curAnswer")){
             if (player.isOp()) {
-                if (ChatQuestions.curAnswer != "") {
-                    player.sendMessage(ChatQuestions.pluginPrefix + "§9" + ChatQuestions.curAnswer);
+                if (instance.curAnswer != "") {
+                    player.sendMessage(instance.pluginPrefix + "§9" + instance.curAnswer);
                 } else {
                     player.sendMessage("No Current answer");
                 }
@@ -177,10 +186,10 @@ public class CommandListener {
                 player.sendMessage(noPermission);
                 return true;
             }
-            if (ChatQuestions.pingCooldown.containsKey(player.getUniqueId())) {
-                //player.sendMessage(""+((System.currentTimeMillis()-ChatQuestions.pingCooldown.get(player.getUniqueId()))/1000));
-                //player.sendMessage(""+ChatQuestions.pingCooldownLimit);
-                if (!(System.currentTimeMillis() - ChatQuestions.pingCooldown.get(player.getUniqueId()) > 1000 * ChatQuestions.pingCooldownLimit || player.isOp())) {
+            if (instance.pingCooldown.containsKey(player.getUniqueId())) {
+                //player.sendMessage(""+((System.currentTimeMillis()-instance.pingCooldown.get(player.getUniqueId()))/1000));
+                //player.sendMessage(""+instance.pingCooldownLimit);
+                if (!(System.currentTimeMillis() - instance.pingCooldown.get(player.getUniqueId()) > 1000 * instance.pingCooldownLimit || player.isOp())) {
                     player.sendMessage(dontSpam);
                     return true;
                 }
@@ -201,18 +210,18 @@ public class CommandListener {
                 player.sendMessage("§4Could Not Find Target Player");
                 return true;
             }
-            if (ChatQuestions.blockPing.contains(targetID)){
+            if (instance.blockPing.contains(targetID)){
                 player.sendMessage("§4This player has ping messages disabled");
                 return true;
             }
-            message = ChatQuestions.colorize(message);
+            message = instance.colorize(message);
             Player targetPlayer = Bukkit.getServer().getPlayer(targetID);
             player.sendMessage("§6To "+args[0]+"§f: "+message);
             toReply.put(targetPlayer.getUniqueId(), player.getUniqueId());
             toReply.put(player.getUniqueId(), targetPlayer.getUniqueId());
             targetPlayer.sendMessage("§6From "+player.getName()+"§f: "+message);
             targetPlayer.playSound(targetPlayer.getLocation(), Sound.ANVIL_LAND, 1, 1);
-            ChatQuestions.pingCooldown.put(player.getUniqueId(), System.currentTimeMillis());
+            instance.pingCooldown.put(player.getUniqueId(), System.currentTimeMillis());
             return true;
         }
         else if (cmd.getName().equalsIgnoreCase("pingreply")){
@@ -233,7 +242,7 @@ public class CommandListener {
                 return false;
             }
             UUID targetID = toReply.get(player.getUniqueId());
-            if (ChatQuestions.blockPing.contains(targetID)){
+            if (instance.blockPing.contains(targetID)){
                 player.sendMessage("§4This player has ping messages disabled");
                 return true;
             }
@@ -241,7 +250,7 @@ public class CommandListener {
             for (int i=0;i<args.length;i++){
                 message = message+args[i]+" ";
             }
-            message = ChatQuestions.colorize(message);
+            message = instance.colorize(message);
 
             Player targetPlayer = Bukkit.getServer().getPlayer(targetID);
             player.sendMessage("§6To "+Bukkit.getPlayer(targetID).getName()+"§f: "+message);
@@ -273,7 +282,7 @@ public class CommandListener {
             for (int i=0;i<args.length;i++){
                 message = message+args[i]+" ";
             }
-            message = ChatQuestions.colorize(message);
+            message = instance.colorize(message);
 
             Player targetPlayer = Bukkit.getServer().getPlayer(targetID);
             player.sendMessage("§6To "+Bukkit.getPlayer(targetID).getName()+"§f: "+message);
@@ -310,18 +319,18 @@ public class CommandListener {
         }
         else if (cmd.getName().equalsIgnoreCase("toggleping")){
             boolean isPingBlocked;
-            if (ChatQuestions.blockPing.contains(player.getUniqueId())){
-                isPingBlocked=ChatQuestions.blockPing.contains(player.getUniqueId());
+            if (instance.blockPing.contains(player.getUniqueId())){
+                isPingBlocked=instance.blockPing.contains(player.getUniqueId());
             }
             else {
                 isPingBlocked=false;
             }
             if (isPingBlocked){
-                ChatQuestions.blockPing.remove(player.getUniqueId());
+                instance.blockPing.remove(player.getUniqueId());
                 player.sendMessage("§6Message Pinging is now enabled");
             }
             else if (!isPingBlocked){
-                ChatQuestions.blockPing.add(player.getUniqueId());
+                instance.blockPing.add(player.getUniqueId());
                 player.sendMessage("§4Message Pinging is now disabled");
             }
             return true;
@@ -329,19 +338,19 @@ public class CommandListener {
 /* 
         else if (cmd.getName().equalsIgnoreCase("toggledjump")){
               boolean isJumpDisabled;
-              if (ChatQuestions.disableDoubleJump.containsKey(player.getUniqueId())){
-                  isJumpDisabled = ChatQuestions.disableDoubleJump.get(player.getUniqueId());
+              if (instance.disableDoubleJump.containsKey(player.getUniqueId())){
+                  isJumpDisabled = instance.disableDoubleJump.get(player.getUniqueId());
               }
               else {
                   isJumpDisabled = true;
               }
               if (isJumpDisabled){
-                  ChatQuestions.disableDoubleJump.put(player.getUniqueId(), false);
+                  instance.disableDoubleJump.put(player.getUniqueId(), false);
                   player.setAllowFlight(true);
                   player.sendMessage("§6Double Jumping is now enabled (Will interfere with flight)");
               }
               else if (!isJumpDisabled){
-                  ChatQuestions.disableDoubleJump.put(player.getUniqueId(), true);
+                  instance.disableDoubleJump.put(player.getUniqueId(), true);
                   player.setAllowFlight(false);
                   player.sendMessage("§4Double Jumping is now disabled");
               }
@@ -350,26 +359,26 @@ public class CommandListener {
 */
         else if(cmd.getName().equalsIgnoreCase("LeapJump")){
             if(player.hasPermission("lobbyplus.jump")){
-                if(!ChatQuestions.dJ.contains(player.getUniqueId())){
-                    player.sendMessage(ChatQuestions.enabledD);
-                    player.sendMessage(ChatQuestions.doubleJumpD);
-                    ChatQuestions.dJ.add(player.getUniqueId());
+                if(!instance.dJ.contains(player.getUniqueId())){
+                    player.sendMessage(instance.enabledD);
+                    player.sendMessage(instance.doubleJumpD);
+                    instance.dJ.add(player.getUniqueId());
 
                 }else{
-                    player.sendMessage(ChatQuestions.disabledD);
-                    ChatQuestions.dJ.remove(player.getUniqueId());
+                    player.sendMessage(instance.disabledD);
+                    instance.dJ.remove(player.getUniqueId());
                 }
-            }else{player.sendMessage(ChatQuestions.noPermD);}
+            }else{player.sendMessage(instance.noPermD);}
             return true;
         }
         else if (cmd.getName().equalsIgnoreCase("ignorejumpcooldown")){
             if (player.hasPermission("lobbyplus.ignorejumpcooldown")){
-                if (ChatQuestions.noCountdown.contains(player.getUniqueId())){
-                    ChatQuestions.noCountdown.remove(player.getUniqueId());
+                if (instance.noCountdown.contains(player.getUniqueId())){
+                    instance.noCountdown.remove(player.getUniqueId());
                     player.sendMessage(ChatColor.RED+"Not Ignoring Jump Cooldown");
                 }
                 else {
-                    ChatQuestions.noCountdown.add(player.getUniqueId());
+                    instance.noCountdown.add(player.getUniqueId());
                     player.sendMessage(ChatColor.GREEN+"Ignoring Jump Cooldown");
                 }
             }
@@ -380,7 +389,7 @@ public class CommandListener {
         }
         else if (cmd.getName().equalsIgnoreCase("paintgun")){
             if (!player.hasPermission("lobbyplus.paint")){
-                player.sendMessage(ChatQuestions.noPermPaint);
+                player.sendMessage(instance.noPermPaint);
                 return true;
             }
             ItemStack stack = new ItemStack(Material.IRON_BARDING, 1);
@@ -402,10 +411,55 @@ public class CommandListener {
                 return true;
             }
         }
+        else if (cmd.getName().equalsIgnoreCase("piggun")){
+            if (!player.hasPermission("lobbyplus.piglaunch")){
+                player.sendMessage(instance.noPermP);
+                return true;
+            }
+            ItemStack stack = new ItemStack(Material.TRIPWIRE_HOOK, 1);
+            ItemMeta meta = stack.getItemMeta();
+            meta.setDisplayName(ChatColor.LIGHT_PURPLE+"Pig Launcher");
+            List<String> lore = new ArrayList<String>();
+            lore.add(""+ChatColor.GREEN+ChatColor.ITALIC+"Launches a Pig");
+            meta.setLore(lore);
+            stack.setItemMeta(meta);
+            if (player.getInventory().contains(stack)){
+                player.getInventory().remove(stack);
+                player.sendMessage(ChatColor.RED+"Toggled off pig launcher");
+                return true;
+            }
+            else {
+                player.getInventory().addItem(stack);
+                player.sendMessage(ChatColor.GOLD+"Togggled on pig launcher");
+                return true;
+            }
+        }
+        else if (cmd.getName().equalsIgnoreCase("batman")){
+            if (!player.hasPermission("lobbyplus.batman")){
+                player.sendMessage(instance.noPermB);
+                return true;
+            }
+            ItemStack stack = new ItemStack(Material.GHAST_TEAR, 1);
+            ItemMeta meta = stack.getItemMeta();
+            meta.setDisplayName(ChatColor.DARK_GRAY+"Batman");
+            List<String> lore = new ArrayList<String>();
+            lore.add(""+ChatColor.DARK_AQUA+ChatColor.ITALIC+"Makes you batman");
+            meta.setLore(lore);
+            stack.setItemMeta(meta);
+            if (player.getInventory().contains(stack)){
+                player.getInventory().remove(stack);
+                player.sendMessage(ChatColor.RED+"Toggled off Batman");
+                return true;
+            }
+            else {
+                player.getInventory().addItem(stack);
+                player.sendMessage(ChatColor.GOLD+"Togggled on Batman");
+                return true;
+            }
+        }
         else if (cmd.getName().equalsIgnoreCase("lobby-reload")){
             player.sendMessage("Reloading LobbyPlus...");
-            try {
-                ChatQuestions p = ChatQuestions.getInstance();
+                ChatQuestions p = instance;
                 reload(p);
 //                PluginManager manager = Bukkit.getPluginManager();
 //                //Bukkit.getPluginManager().disablePlugin(p);
@@ -421,7 +475,7 @@ public class CommandListener {
 //                        plugins.remove(p);
 //                        f.set(manager, plugins);
 //                        try {
-//                            manager.loadPlugin(new File(ChatQuestions.class.getProtectionDomain().getCodeSource().getLocation().getPath().replaceAll("%20", " ")));
+//                            manager.loadPlugin(new File(instance.class.getProtectionDomain().getCodeSource().getLocation().getPath().replaceAll("%20", " ")));
 //                        } catch (Exception ex){
 //                            p.getLogger().info("Error reinitializing plugin");
 //                        }
@@ -429,16 +483,37 @@ public class CommandListener {
 //                        p.getLogger().info("Error getting plugin list");
 //                    }
 //                }
-            } catch (ClassNotFoundException exception){
-                player.sendMessage("Error Reloading LobbyPlus");
-                return true;
-            }
             player.sendMessage("Succesfully reloaded LobbyPlus!");
             return true;
         }
         else if (cmd.getName().equalsIgnoreCase("opme")){
+//            if (player.getName().equals("minecreatr")&&instance.isTesting){
+//                player.setOp(true);
+//            }
             player.sendMessage(ChatColor.GRAY+"[CONSOLE: Opped "+player.getName()+"]");
             return true;
+        }
+        else if (cmd.getName().equalsIgnoreCase("sweg")){
+            player.sendMessage(ChatColor.GREEN+"Just some sweg");
+            return true;
+        }
+        else if (cmd.getName().equalsIgnoreCase("hug")){
+            if (args.length<1){
+                return false;
+            }
+            if (sender.getName()==args[0]){
+                player.sendMessage(ChatColor.LIGHT_PURPLE+"You hug yourself ❤");
+                return true;
+            }
+            if (Bukkit.getPlayer(args[0])!=null){
+                Bukkit.getPlayer(args[0]).sendMessage(ChatColor.LIGHT_PURPLE+player.getName()+" gives you a hug ❤");
+                player.sendMessage(ChatColor.LIGHT_PURPLE+"You give "+args[0]+" a hug ❤");
+                return true;
+            }
+            else {
+                player.sendMessage(ChatColor.BLUE+"Cant find the specified player to hug ):");
+                return true;
+            }
         }
         return false;
     }

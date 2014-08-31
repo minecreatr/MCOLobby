@@ -25,18 +25,18 @@ public class ChatListener {
 //        if (player.getName().equals("minecreatr")){
 //            event.setCancelled(false);
 //        }
-        if ((!(ChatQuestions.curAnswer.equalsIgnoreCase("")))&& ChatQuestions.containsIgnoreCase(event.getMessage(), ChatQuestions.curAnswer)){
-            player.sendMessage(ChatQuestions.pluginPrefix+"§e§lCongratulations you guessed correctly");
+        if ((!(instance.curAnswer.equalsIgnoreCase("")))&& instance.containsIgnoreCase(event.getMessage(), instance.curAnswer)){
+            player.sendMessage(instance.pluginPrefix+"§e§lCongratulations you guessed correctly");
             Bukkit.broadcastMessage("");
-            Bukkit.broadcastMessage(ChatQuestions.pluginPrefix + player.getDisplayName() + " §9has answered the question correctly!!!");
-            Bukkit.broadcastMessage(ChatQuestions.pluginPrefix+"§9The correct answer was §c§l"+ChatQuestions.curAnswer);
-            Bukkit.broadcastMessage(ChatQuestions.pluginPrefix+"§9and the question was §c§l"+ChatQuestions.curQuestion);
+            Bukkit.broadcastMessage(instance.pluginPrefix + player.getDisplayName() + " §9has answered the question correctly!!!");
+            Bukkit.broadcastMessage(instance.pluginPrefix+"§9The correct answer was §c§l"+instance.curAnswer);
+            Bukkit.broadcastMessage(instance.pluginPrefix+"§9and the question was §c§l"+instance.curQuestion);
             Bukkit.broadcastMessage("");
-            ChatQuestions.curAnswer="";
-            ChatQuestions.curQuestion="";
-            ChatQuestions.questionUUID=null;
-            ChatQuestions.curAsker="";
-            ChatQuestions.curHints.clear();
+            instance.curAnswer="";
+            instance.curQuestion="";
+            instance.questionUUID=null;
+            instance.curAsker="";
+            instance.curHints.clear();
             int curNum = instance.getQuestionStats().getInt(player.getName());
             instance.getQuestionStats().set(player.getName(), curNum+1);
             event.setCancelled(true);

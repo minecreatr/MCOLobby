@@ -2,21 +2,18 @@ package com.minecreatr.chatquestions;
 
 import com.minecreatr.chatquestions.listeners.ChatListener;
 import com.minecreatr.chatquestions.listeners.CommandListener;
-import com.minecreatr.chatquestions.listeners.ToggleFlightListener;
-import net.minecraft.server.v1_7_R2.BlockContainer;
-import net.minecraft.server.v1_7_R2.Container;
-import net.minecraft.server.v1_7_R2.IContainer;
-import net.minecraft.server.v1_7_R2.TileEntityChest;
+import net.minecraft.server.v1_7_R2.EntityLiving;
+import net.minecraft.server.v1_7_R2.EntitySnowball;
 import org.bukkit.*;
+import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.block.BlockFace;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.enchantments.Enchantment;
-import org.bukkit.entity.EntityType;
-import org.bukkit.entity.Player;
-import org.bukkit.entity.Snowball;
+import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -25,13 +22,16 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.ProjectileHitEvent;
+import org.bukkit.event.hanging.HangingBreakEvent;
 import org.bukkit.event.player.*;
+import org.bukkit.event.vehicle.VehicleEntityCollisionEvent;
 import org.bukkit.inventory.meta.FireworkEffectMeta;
 import org.bukkit.inventory.meta.FireworkMeta;
 import org.bukkit.metadata.MetadataValue;
 import org.bukkit.permissions.PermissionAttachment;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitScheduler;
+import org.bukkit.scoreboard.*;
 import org.bukkit.util.Vector;
 
 import java.io.BufferedReader;
@@ -49,38 +49,47 @@ public class ChatQuestions extends JavaPlugin implements Listener {
 
     Random random = new Random();
     public static final String section = "§";
-    public static String curAnswer = "";
-    public static String curQuestion = "";
-    public static String curAsker = "";
-    public static ArrayList<String> curHints = new ArrayList<String>();
-    public static HashMap<UUID, DisguisedBlock> coloredBlocks = new HashMap<UUID, DisguisedBlock>();
+    public String curAnswer = "";
+    public String curQuestion = "";
+    public String curAsker = "";
+    public ArrayList<String> curHints = new ArrayList<String>();
+    public HashMap<UUID, DisguisedBlock> coloredBlocks = new HashMap<UUID, DisguisedBlock>();
     public boolean haltRender = false;
-    private static int paintTimeout;
-    public static UUID questionUUID;
-    public static int pingCooldownLimit;
+    private int paintTimeout;
+    public UUID questionUUID;
+    public int pingCooldownLimit;
     public final static long questionTimeout = 20*60*3;
+    public ScoreboardManager manager;
+    public Scoreboard board;
+    public Objective paintHits;
+    //public static boolean isTesting;
     //red green yellow [MCO]
-    public static String pluginPrefix = "[§cM§2C§eO§f§6C§dQ§f] ";
-    public static ArrayList<UUID> blockPing = new ArrayList<UUID>();
-    public static ArrayList<UUID> disableDoubleJump = new ArrayList<UUID>();
-    public static ArrayList<UUID> paintballs = new ArrayList<UUID>();
-    public static ArrayList<String> filter = new ArrayList<String>();
+    public static final String pluginPrefix = "[§cM§2C§eO§f§6C§dQ§f] ";
+    public ArrayList<UUID> blockPing = new ArrayList<UUID>();
+    public ArrayList<UUID> disableDoubleJump = new ArrayList<UUID>();
+    public ArrayList<UUID> paintballs = new ArrayList<UUID>();
+    public ArrayList<String> filter = new ArrayList<String>();
+    public ArrayList<UUID> pigs = new ArrayList<UUID>();
     //public static HashMap<UUID, Boolean> isInAir = new HashMap<UUID, Boolean>();
     private ChatListener chatListener = new ChatListener(this);
     private CommandListener commandListener = new CommandListener(this);
-    private ToggleFlightListener toggleFlightListener = new ToggleFlightListener();
 
     //If player can double jump
-    public static ArrayList<UUID> dJ = new ArrayList<UUID>();
-    public static ArrayList<UUID> noCountdown = new ArrayList<UUID>();
-    public static HashMap<UUID, Long> cooldown = new HashMap<UUID, Long>();
-    public static HashMap<UUID, Long> pingCooldown = new HashMap<UUID, Long>();
+    public ArrayList<UUID> dJ = new ArrayList<UUID>();
+    public ArrayList<UUID> noCountdown = new ArrayList<UUID>();
+    public HashMap<UUID, Long> cooldown = new HashMap<UUID, Long>();
+    public HashMap<UUID, Long> pingCooldown = new HashMap<UUID, Long>();
+    public HashMap<UUID, Long> paintCooldown = new HashMap<UUID, Long>();
+    public HashMap<UUID, Long> pigCooldown = new HashMap<UUID, Long>();
+    public HashMap<UUID, Long> batCooldown = new HashMap<UUID, Long>();
 
-    public static String enabledD = ChatColor.GREEN + "Enabled Leap Jump!";
-    public static String disabledD = ChatColor.RED + "Disabled Leap Jump!";
-    public static String noPermD = "" + ChatColor.RED + ChatColor.ITALIC + "Donate to get the ability to Leap Jump!";
-    public static String noPermPaint = "" + ChatColor.RED + ChatColor.ITALIC + "Donate to get the ability to launch paint!";
-    public static String doubleJumpD = "" + ChatColor.GREEN + ChatColor.UNDERLINE + "To Leap Jump hold shift and jump!";
+    public static final String enabledD = ChatColor.GREEN + "Enabled Leap Jump!";
+    public static final String disabledD = ChatColor.RED + "Disabled Leap Jump!";
+    public static final String noPermD = "" + ChatColor.RED + ChatColor.ITALIC + "Donate to get the ability to Leap Jump!";
+    public static final String noPermPaint = "" + ChatColor.RED + ChatColor.ITALIC + "Donate to get the ability to launch paint!";
+    public static final String doubleJumpD = "" + ChatColor.GREEN + ChatColor.UNDERLINE + "To Leap Jump hold shift and jump!";
+    public static final String noPermP = ""+ChatColor.RED + ChatColor.ITALIC + "Donate to get the ability to shoot pigs!";
+    public static final String noPermB = ""+ChatColor.RED + ChatColor.ITALIC + "Donate to be batman";
 
     private FileConfiguration questionStats= null;
     private File questionStatsFile = null;
@@ -128,10 +137,10 @@ public class ChatQuestions extends JavaPlugin implements Listener {
         s.scheduleSyncDelayedTask(this, new Runnable() {
             @Override
             public void run() {
-                if (id==ChatQuestions.questionUUID){
+                if (id==questionUUID){
                     Bukkit.broadcastMessage(ChatQuestions.pluginPrefix + " §6No one has answered the question ):");
-                    Bukkit.broadcastMessage(ChatQuestions.pluginPrefix+"§9The correct answer was §c§l"+ChatQuestions.curAnswer);
-                    Bukkit.broadcastMessage(ChatQuestions.pluginPrefix+"§9and the question was §c§l"+ChatQuestions.curQuestion);
+                    Bukkit.broadcastMessage(ChatQuestions.pluginPrefix+"§9The correct answer was §c§l"+curAnswer);
+                    Bukkit.broadcastMessage(ChatQuestions.pluginPrefix+"§9and the question was §c§l"+curQuestion);
                     curQuestion="";
                     curAnswer="";
                     questionUUID=null;
@@ -146,18 +155,28 @@ public class ChatQuestions extends JavaPlugin implements Listener {
         loadStuff();
         reloadQuestionStats();
         BukkitScheduler s = Bukkit.getScheduler();
-        Runnable update = new Runnable() {
-            @Override
-            public void run() {
-                Player[] players = Bukkit.getOnlinePlayers();
-                for (int i=0;i<players.length;i++){
-                    PlayerTickEvent event = new PlayerTickEvent(players[i]);
-                    getServer().getPluginManager().callEvent(event);
-                }
-            }
-        };
-        s.scheduleSyncRepeatingTask(this, update, 0l, 1l);
-        saveConfig();;
+//        Runnable update = new Runnable() {
+//            @Override
+//            public void run() {
+//                Player[] players = Bukkit.getOnlinePlayers();
+//                for (int i=0;i<players.length;i++){
+//                    PlayerTickEvent event = new PlayerTickEvent(players[i]);
+//                    getServer().getPluginManager().callEvent(event);
+//                    TickEvent tick = new TickEvent();
+//                    getServer().getPluginManager().callEvent(tick);
+//                }
+//            }
+//        };
+//        s.scheduleSyncRepeatingTask(this, update, 0l, 1l);
+        saveConfig();
+        manager = Bukkit.getScoreboardManager();
+        board = manager.getNewScoreboard();
+        paintHits = board.getObjective("paintHits");
+        if (paintHits==null){
+            paintHits = board.registerNewObjective("paintHits", "dummy");
+        }
+        paintHits.setDisplayName(ChatColor.AQUA+"Paintball Hits");
+        paintHits.setDisplaySlot(DisplaySlot.BELOW_NAME);
     }
 
     public void loadStuff(){
@@ -200,6 +219,7 @@ public class ChatQuestions extends JavaPlugin implements Listener {
             paintTimeout = this.getConfig().getInt("paintTimeout");
             this.getLogger().info("Setting the paint timeout to "+this.getConfig().getInt("paintTimeout"));
         }
+        //this.isTesting=this.getConfig().getBoolean("testingMode");
     }
 
 
@@ -360,26 +380,161 @@ public class ChatQuestions extends JavaPlugin implements Listener {
         return out;
     }
 
+    public void pigExplode(final UUID id){
+        BukkitScheduler s = Bukkit.getScheduler();
+        Runnable selfDestruct = new Runnable() {
+            @Override
+            public void run() {
+                Pig pig = getPig(id);
+                if (pig!=null){
+                    Location loc = pig.getLocation();
+                    pig.getWorld().createExplosion(loc.getX(), loc.getY(), loc.getZ(), 4, false, false);
+                    pig.setHealth(0);
+                }
+            }
+        };
+        s.scheduleSyncDelayedTask(this, selfDestruct, 20*2);
+    }
+
+    public void batDie(final Bat bat){
+        BukkitScheduler s = Bukkit.getScheduler();
+        Runnable batDestroy = new Runnable() {
+            @Override
+            public void run() {
+                bat.getWorld().playEffect(bat.getLocation(), Effect.SMOKE, 13);
+                bat.setHealth(0);
+            }
+        };
+        s.scheduleSyncDelayedTask(this, batDestroy, 20*6);
+    }
+
+    @EventHandler
+    public void onDeath(EntityDeathEvent event){
+        if (pigs.contains(event.getEntity().getUniqueId()) && event.getEntity() instanceof Pig){
+            event.getDrops().clear();
+        }
+    }
+
     @EventHandler(priority = EventPriority.HIGH)
     public void onInteract(PlayerInteractEvent event){
         //event.getPlayer().sendMessage(event.getAction().toString());
-        if (event.getAction()== Action.RIGHT_CLICK_AIR && event.getPlayer().getItemInHand().getType()==Material.IRON_BARDING
+        if ((event.getAction()== Action.RIGHT_CLICK_AIR || event.getAction() == Action.RIGHT_CLICK_BLOCK)&& event.getPlayer().getItemInHand().getType()==Material.IRON_BARDING
                 && event.getPlayer().getItemInHand().getItemMeta().getLore().contains(""+ChatColor.GREEN+ChatColor.ITALIC+"Shoots a paintball") &&
-                event.getPlayer().hasPermission("leapjump.paint")){
+                event.getPlayer().hasPermission("lobbyplus.paint")){
             Player player = event.getPlayer();
+            if (paintCooldown.containsKey(player.getUniqueId())){
+                if (!(System.currentTimeMillis() - paintCooldown.get(player.getUniqueId()) > 1000 * 6 || player.isOp())){
+                    player.sendMessage(ChatColor.RED+"You can use the paintgun in "+(6-(1000*(System.currentTimeMillis()-paintCooldown.get(player.getUniqueId()))))+" seconds");
+                    return;
+                }
+            }
             Snowball snowball = player.throwSnowball();
             paintballs.add(snowball.getUniqueId());
-            player.playSound(snowball.getLocation(), Sound.CHICKEN_EGG_POP,1 ,1);
+            player.playSound(snowball.getLocation(), Sound.CHICKEN_EGG_POP, 1, 1);
+            paintCooldown.put(player.getUniqueId(), System.currentTimeMillis());
+            event.setCancelled(true);
+        }
+        else if ((event.getAction()== Action.RIGHT_CLICK_AIR || event.getAction() == Action.RIGHT_CLICK_BLOCK) && event.getPlayer().getItemInHand().getType()==Material.TRIPWIRE_HOOK
+                &&event.getPlayer().getItemInHand().getItemMeta().getLore().contains(""+ChatColor.GREEN+ChatColor.ITALIC+"Launches a Pig") &&
+                event.getPlayer().hasPermission("lobbyplus.piglaunch")){
+            Player player = event.getPlayer();
+            if (pigCooldown.containsKey(player.getUniqueId())){
+                if (!(System.currentTimeMillis() - pigCooldown.get(player.getUniqueId()) > 1000 * 60 || player.isOp())){
+                    player.sendMessage(ChatColor.RED+"You can use the pig launcher in "+(60-(1000*(System.currentTimeMillis()-pigCooldown.get(player.getUniqueId()))))+" seconds");
+                    return;
+                }
+            }
+            Pig pig = (Pig)player.getWorld().spawnEntity(player.getEyeLocation(), EntityType.PIG);
+            pigs.add(pig.getUniqueId());
+            //pig.setSaddle(true);
+            pig.setVelocity(player.getLocation().getDirection().add(player.getLocation().getDirection().
+                    add(player.getLocation().getDirection().add(player.getLocation().getDirection()))));
+            player.playSound(player.getLocation(), Sound.PIG_DEATH, 3, 2);
+            pigExplode(pig.getUniqueId());
+            pigCooldown.put(player.getUniqueId(), System.currentTimeMillis());
+            event.setCancelled(true);
+        }
+        else if ((event.getAction()== Action.RIGHT_CLICK_AIR || event.getAction() == Action.RIGHT_CLICK_BLOCK) && event.getPlayer().getItemInHand().getType()==Material.GHAST_TEAR
+                &&event.getPlayer().getItemInHand().getItemMeta().getLore().contains(""+ChatColor.DARK_AQUA+ChatColor.ITALIC+"Makes you batman") &&
+                event.getPlayer().hasPermission("lobbyplus.batman")){
+            Player player = event.getPlayer();
+            if (batCooldown.containsKey(player.getUniqueId())){
+                if (!(System.currentTimeMillis() - batCooldown.get(player.getUniqueId()) > 1000 * 30 || player.isOp())){
+                    player.sendMessage(ChatColor.RED+"You can use batman in "+(30-(1000*(System.currentTimeMillis()-batCooldown.get(player.getUniqueId()))))+" seconds");
+                    return;
+                }
+            }
+            int batNum = random.nextInt(15);
+            for (int i=0;i<batNum;i++){
+                Bat curBat = (Bat)player.getWorld().spawnEntity(player.getEyeLocation(), EntityType.BAT);
+                player.getWorld().playEffect(player.getEyeLocation(), Effect.SMOKE, 13);
+                batDie(curBat);
+            }
+            batCooldown.put(player.getUniqueId(), System.currentTimeMillis());
+            event.setCancelled(true);
+
         }
 
     }
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onFrameBreak(HangingBreakEvent event){
+        if (event.getCause()== HangingBreakEvent.RemoveCause.EXPLOSION){
+            if (event.getEntity() instanceof ItemFrame){
+                event.setCancelled(true);
+            }
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onDamage(EntityDamageEvent event){
+        if (pigs.contains(event.getEntity().getUniqueId())){
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler
+    public void entityDamageByEntity(EntityDamageByEntityEvent event){
+        if (event.getCause()== EntityDamageEvent.DamageCause.PROJECTILE){
+            if (event.getDamager() instanceof EntitySnowball){
+                if (paintballs.contains(((EntitySnowball) event.getDamager()).getUniqueID())){
+                    EntityLiving shooter = ((EntitySnowball) event.getDamager()).getShooter();
+                    if (event.getEntity() instanceof Player){
+                        ((Player) event.getEntity()).sendMessage("You were painted by "+shooter.getName());
+                        Score score = paintHits.getScore((OfflinePlayer)shooter);
+                        score.setScore(score.getScore()+1);
+                        ((Player) shooter).playSound(((Player) shooter).getLocation(), Sound.SUCCESSFUL_HIT, 1, 1);
+                    }
+                }
+            }
+        }
+    }
+
+    public void removePaint(final Location location){
+        BukkitScheduler s = Bukkit.getScheduler();
+        Runnable remove = new Runnable() {
+            @Override
+            public void run() {
+                Player[] players = Bukkit.getOnlinePlayers();
+                for (int i=0;i<players.length;i++){
+                    players[i].sendBlockChange(location, location.getBlock().getType(), location.getBlock().getData());
+                }
+            }
+        };
+        s.scheduleSyncDelayedTask(this, remove, 20*3);
+    }
 
     public void addPaint(Location location, byte color, int times){
-        if (location.getBlock().getType().isSolid()) {
-            haltRender = true;
-            DisguisedBlock block = new DisguisedBlock(Material.WOOL, color, location);
-            coloredBlocks.put(block.getID(), block);
-            haltRender = false;
+        if (location.getBlock().getType().isSolid() && (location.getBlock().getType()!=Material.SIGN && location.getBlock().getType()!=Material.SIGN_POST
+            && location.getBlock().getType()!=Material.WALL_SIGN)){
+//            haltRender = true;
+//            DisguisedBlock block = new DisguisedBlock(Material.WOOL, color, location);
+//            coloredBlocks.put(block.getID(), block);
+//            haltRender = false;
+            Player[] players = Bukkit.getOnlinePlayers();
+            for (int i=0;i<players.length;i++){
+                players[i].sendBlockChange(location, Material.WOOL, color);
+            }
+            removePaint(location);
         }
         else if (!(times>1)){
             location.setY(location.getY()-1);
@@ -398,7 +553,7 @@ public class ChatQuestions extends JavaPlugin implements Listener {
         }
     }
 
-    public static boolean isDirty(String in){
+    public boolean isDirty(String in){
         boolean out = false;
         for (int i=0;i<filter.size();i++){
             if (in.contains(filter.get(i))){
@@ -424,6 +579,35 @@ public class ChatQuestions extends JavaPlugin implements Listener {
         } catch(ConcurrentModificationException exception){
             //we dont care so do nothing
         }
+    }
+
+    @EventHandler
+    public void onCollide(VehicleEntityCollisionEvent event){
+
+    }
+
+    @EventHandler
+    public void onTick(TickEvent event){
+        for (int i=0;i<pigs.size();i++){
+            UUID curId = pigs.get(i);
+            Pig pig = getPig(curId);
+            if (pig==null){
+                pigs.remove(i);
+            }
+        }
+    }
+
+    public static Pig getPig(UUID id){
+        for (World w : Bukkit.getWorlds()){
+            Iterator<Pig> p = w.getEntitiesByClass(Pig.class).iterator();
+            while(p.hasNext()){
+                Pig curPig = p.next();
+                if (curPig.getUniqueId()==id){
+                    return curPig;
+                }
+            }
+        }
+        return null;
     }
 
     public static ChatQuestions getInstance() throws ClassNotFoundException{

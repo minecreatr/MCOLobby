@@ -7,9 +7,8 @@ import org.bukkit.event.HandlerList;
 /**
  * Created on 8/11/2014
  */
-public class PlayerTickEvent extends Event{
+public class PlayerTickEvent extends TickEvent{
 
-    private static final HandlerList handlers = new HandlerList();
     private Player player;
 
     public PlayerTickEvent(Player player){
@@ -19,13 +18,4 @@ public class PlayerTickEvent extends Event{
         return this.player;
     }
 
-
-    @Override
-    public HandlerList getHandlers(){
-        return handlers;
-    }
-
-    public static HandlerList getHandlerList() {
-        return handlers;
-    }
 }
